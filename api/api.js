@@ -136,6 +136,28 @@ app.post(
   })
 );
 
+// Suspender (RF-16) y reanudar (RF-17): apagan o encienden la VM sin borrar el tenant.
+function rutaEnergia(accion, estadoRequerido) {
+  app.post(
+    `/tenants/:id/${accion}`,
+    ruta(async (req, res) => {
+      const id = req.params.id;
+      const { rows } = await pool.query('SELECT estado FROM tenants WHERE id = $1', [id]);
+      if (!rows.length) return res.status(404).json({ error: 'Tenant no encontrado' });
+      if (rows[0].estado !== estadoRequerido) {
+        return res.status(409).json({ error: `Solo se puede ${accion} un tenant en estado ${estadoRequerido} (estado actual: ${rows[0].estado})` });
+      }
+      const ocupado = await pool.query(
+        `SELECT 1 FROM operations WHERE tenant_id = $1 AND estado IN ('pendiente','en_curso') LIMIT 1`, [id]);
+      if (ocupado.rows.length) return res.status(409).json({ error: 'El tenant ya tiene una operacion en curso' });
+      const o = await pool.query(`INSERT INTO operations (tenant_id, tipo) VALUES ($1, $2) RETURNING *`, [id, accion]);
+      res.status(202).json({ operacion: o.rows[0] });
+    })
+  );
+}
+rutaEnergia('suspender', 'activo');
+rutaEnergia('reanudar', 'suspendido');
+
 // Estado y log de una operacion (RF-11)
 app.get(
   '/operaciones/:id',

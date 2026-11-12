@@ -10,6 +10,8 @@ if (!['fake', 'tofu'].includes(nombreMotor)) {
   process.exit(1);
 }
 const motor = require(`./motor-${nombreMotor}`);
+// Suspender/reanudar: el motor falso lo simula; con tofu se usa el AWS CLI (ec2-energia.js).
+const energia = nombreMotor === 'fake' ? motor : require('./ec2-energia');
 
 // Toma UNA operacion pendiente. SKIP LOCKED evita que dos workers tomen la misma.
 async function tomarOperacion() {
@@ -39,7 +41,7 @@ async function procesar(operacion) {
       .catch(() => {});
   };
 
-  const entrada = { tenant_id: tenant.id, plan: tenant.plan_id, region: tenant.region };
+  const entrada = { tenant_id: tenant.id, plan: tenant.plan_id, region: tenant.region, instance_id: tenant.instance_id };
 
   try {
     if (operacion.tipo === 'crear') {
@@ -63,6 +65,17 @@ async function procesar(operacion) {
         `UPDATE tenants SET estado = 'eliminado', instance_id = NULL, public_ip = NULL, url = NULL,
                 actualizado_en = now() WHERE id = $1`,
         [tenant.id]
+      );
+    } else if (operacion.tipo === 'suspender') {
+      await energia.suspender(entrada, onLog);
+      await cola;
+      await pool.query(`UPDATE tenants SET estado = 'suspendido', actualizado_en = now() WHERE id = $1`, [tenant.id]);
+    } else if (operacion.tipo === 'reanudar') {
+      const salida = await energia.reanudar(entrada, onLog);
+      await cola;
+      await pool.query(
+        `UPDATE tenants SET estado = 'activo', public_ip = $2, url = $3, actualizado_en = now() WHERE id = $1`,
+        [tenant.id, salida.public_ip, salida.url]
       );
     } else {
       throw new Error(`Operacion aun no implementada: ${operacion.tipo}`);
