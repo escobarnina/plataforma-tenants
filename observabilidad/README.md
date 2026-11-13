@@ -29,7 +29,7 @@ Sigue estos pasos rápidos para ensayar la observabilidad de forma autónoma:
    node probar-metricas.js
    ```
 3. **Abrir Grafana**:
-   - URL: [http://localhost:3030](http://localhost:3030) (Usuario: `admin`, Clave: `admin` o acceso anónimo).
+   - URL: [http://localhost:3000](http://localhost:3000) (Usuario: `admin`, Clave: `admin` o acceso anónimo).
    - Abre el dashboard preconfigurado: **"Salud y Rendimiento de Tenants"** en la carpeta `Tenants`.
    - Utiliza los selectores desplegables superiores de `Tenant` y `Entorno` para filtrar las métricas.
 4. **Abrir Prometheus y Alertmanager**:
@@ -38,6 +38,6 @@ Sigue estos pasos rápidos para ensayar la observabilidad de forma autónoma:
 5. **Conectar con la consola Web**:
    - En el archivo `web/.env`, establece:
      ```env
-     VITE_GRAFANA_URL=http://localhost:3030/d/tenants-overview/salud-y-rendimiento-de-tenants
+     VITE_GRAFANA_URL=http://localhost:3000/d/tenants-overview/salud-y-rendimiento-de-tenants
      ```
    - Al navegar a la sección **Monitoreo** en la consola web, el dashboard cargará incrustado y sincronizado.
