@@ -6,6 +6,7 @@
 const { spawn } = require('child_process');
 const fs = require('fs');
 const path = require('path');
+const { datosAdmin } = require('./tenant-admin');
 
 const PLAN_A_INSTANCIA = { basico: 't3.micro', estandar: 't3.small', avanzado: 'c7i-flex.large' };
 const PLAN_A_DB_GB = { basico: 10, estandar: 50, avanzado: 200 };
@@ -65,6 +66,7 @@ async function apply(tenant, onLog = () => {}) {
   validar(tenant);
   const s = stack(tenant);
   const config = (clave, valor) => pulumi(['config', 'set', clave, String(valor), '--stack', s], onLog);
+  const { adminPassword, seedData } = datosAdmin();
 
   onLog(`[pulumi] preparando stack ${s}...`);
   await pulumi(['stack', 'select', s, '--create'], onLog);
@@ -73,6 +75,9 @@ async function apply(tenant, onLog = () => {}) {
   await config('dbVolumeGb', PLAN_A_DB_GB[tenant.plan]);
   await config('aws:region', tenant.region || 'us-east-1');
   if (/^ami-[0-9a-f]{8,17}$/.test(process.env.AMI_ID || '')) await config('amiId', process.env.AMI_ID);
+  await config('seedData', seedData);
+  // La clave se guarda como secreto cifrado en la config del stack.
+  if (adminPassword) await pulumi(['config', 'set', '--secret', 'adminPassword', adminPassword, '--stack', s], onLog);
 
   onLog('[pulumi] desplegando...');
   await pulumi(['up', '--yes', '--skip-preview', '--stack', s], onLog);

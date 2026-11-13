@@ -9,7 +9,9 @@ const tenantId = config.require("tenantId");
 const instanceType = config.get("instanceType") ?? "t3.micro";
 const dbVolumeGb = config.getNumber("dbVolumeGb") ?? 10;
 const amiId = config.get("amiId") ?? ""; // AMI de Packer (Integrante 3). Vacio = Ubuntu 24.04.
-const versionPlantilla = "0.1.0";
+const adminPassword = config.getSecret("adminPassword") ?? pulumi.secret(""); // vacio = la VM genera una
+const seedData = config.getBoolean("seedData") ?? false;
+const versionPlantilla = "0.3.0";
 
 if (!/^[a-z0-9-]{3,30}$/.test(tenantId)) {
     throw new Error("tenantId debe tener de 3 a 30 caracteres: minusculas, numeros y guiones");
@@ -48,13 +50,15 @@ const firewall = new aws.ec2.SecurityGroup("tenant", {
 });
 
 // Primer arranque: cloud-init escribe la configuracion de este tenant.
-const userData = `#!/bin/bash
+const userData = pulumi.interpolate`#!/bin/bash
 # Primer arranque de la VM del tenant ${tenantId}.
 set -e
 mkdir -p /etc/tenant
 cat > /etc/tenant/tenant.env <<ENV
 TENANT_ID=${tenantId}
 DB_VOLUME_GB=${dbVolumeGb}
+ADMIN_PASSWORD=${adminPassword}
+SEED_DATA=${seedData}
 ENV
 chmod 600 /etc/tenant/tenant.env
 if ! command -v nginx >/dev/null 2>&1; then

@@ -4,6 +4,7 @@
 const { spawn } = require('child_process');
 const fs = require('fs');
 const path = require('path');
+const { datosAdmin } = require('./tenant-admin');
 
 const PLAN_A_INSTANCIA = { basico: 't3.micro', estandar: 't3.small', avanzado: 'c7i-flex.large' };
 const PLAN_A_DB_GB = { basico: 10, estandar: 50, avanzado: 200 };
@@ -50,12 +51,15 @@ const region = (tenant) => tenant.region || 'us-east-1';
 async function apply(tenant, onLog = () => {}) {
   validar(tenant);
   const db = PLAN_A_DB_GB[tenant.plan];
+  const { adminPassword, seedData } = datosAdmin();
   const parametros = [
     `TenantId=${tenant.tenant_id}`,
     `InstanceType=${PLAN_A_INSTANCIA[tenant.plan]}`,
     `DbVolumeGb=${db}`,
     `RootVolumeGb=${8 + db}`,
+    `SeedData=${seedData}`,
   ];
+  if (adminPassword) parametros.push(`AdminPassword=${adminPassword}`);
   if (/^ami-[0-9a-f]{8,17}$/.test(process.env.AMI_ID || '')) parametros.push(`AmiId=${process.env.AMI_ID}`);
 
   onLog(`[cloudformation] desplegando stack ${nombreStack(tenant)}...`);
