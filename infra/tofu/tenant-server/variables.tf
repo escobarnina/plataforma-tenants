@@ -38,8 +38,21 @@ variable "ssh_cidr" {
   default     = ""
 }
 
+variable "admin_password" {
+  description = "Clave inicial del administrador de la app. Vacio = la VM genera una y la guarda en /etc/tenant/credenciales."
+  type        = string
+  default     = ""
+  sensitive   = true
+}
+
+variable "seed_data" {
+  description = "true = la app arranca con datos de ejemplo (para pruebas)."
+  type        = bool
+  default     = false
+}
+
 variable "version_plantilla" {
   description = "Version de este modulo, la registra la plataforma en cada despliegue."
   type        = string
-  default     = "0.2.0"
+  default     = "0.3.0"
 }

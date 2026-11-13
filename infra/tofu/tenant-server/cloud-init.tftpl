@@ -1,13 +1,15 @@
 #!/bin/bash
 # Primer arranque de la VM del tenant ${tenant_id}.
-# Mientras no exista la AMI de Packer (Integrante 3), deja una pagina de prueba.
-# Con la AMI, este script solo escribe la configuracion del tenant.
+# Con la AMI de Packer (Integrante 3), tenant-configure usa estos datos para dejar la app lista.
+# Sin AMI (Ubuntu estandar), instala nginx y deja una pagina de prueba.
 set -e
 
 mkdir -p /etc/tenant
 cat > /etc/tenant/tenant.env <<ENV
 TENANT_ID=${tenant_id}
 DB_VOLUME_GB=${db_volume_gb}
+ADMIN_PASSWORD=${admin_password}
+SEED_DATA=${seed_data}
 ENV
 chmod 600 /etc/tenant/tenant.env
 

@@ -1,0 +1,141 @@
+#!/bin/bash
+# =====================================================================
+#  Primer arranque de la VM de un tenant (lo ejecuta tenant-configure.service
+#  cuando cloud-init termina de escribir /etc/tenant/tenant.env).
+#
+#  Entrada  : /etc/tenant/tenant.env  (la escribe cloud-init / user_data)
+#               TENANT_ID=utepsa              (obligatorio)
+#               DB_VOLUME_GB=50               (espacio de BD segun el plan)
+#               ADMIN_EMAIL, ADMIN_PASSWORD   (opcionales; si faltan se generan)
+#               SEED_DATA=true                (opcional; carga datos de ejemplo)
+#  Hace     : crea la base y el usuario de MySQL con una clave propia de ESTE tenant,
+#             escribe el .env de la app, migra, crea el administrador, arranca el backend.
+#  Salida   : /etc/tenant/credenciales (solo root) y /var/log/tenant-configure.log
+#  Es idempotente: si ya corrio (marca /var/lib/tenant/configurado) no hace nada.
+# =====================================================================
+set -euo pipefail
+umask 077
+
+LOG=/var/log/tenant-configure.log
+ENV_TENANT=/etc/tenant/tenant.env
+ESTADO=/var/lib/tenant
+MARCA="$ESTADO/configurado"
+APP=/opt/asistencia
+
+mkdir -p "$ESTADO"
+exec >>"$LOG" 2>&1
+echo "=== $(date -Is) tenant-configure ==="
+trap 'echo "ERROR en la linea $LINENO"; date -Is > "$ESTADO/fallido"' ERR
+
+[ -f "$MARCA" ] && { echo "Ya configurado. Nada que hacer."; exit 0; }
+[ -f "$ENV_TENANT" ] || { echo "Falta $ENV_TENANT"; exit 1; }
+
+# Lee una clave de tenant.env sin ejecutar el archivo (solo lineas CLAVE=valor).
+leer() { grep -E "^$1=" "$ENV_TENANT" | tail -n1 | cut -d= -f2- | tr -d '\r' || true; }
+
+TENANT_ID="$(leer TENANT_ID)"
+DB_VOLUME_GB="$(leer DB_VOLUME_GB)"; DB_VOLUME_GB="${DB_VOLUME_GB:-10}"
+SEED_DATA="$(leer SEED_DATA)"
+ADMIN_EMAIL="$(leer ADMIN_EMAIL)"
+ADMIN_PASSWORD="$(leer ADMIN_PASSWORD)"
+DB_PASSWORD="$(leer DB_PASSWORD)"
+JWT_SECRET="$(leer JWT_SECRET)"
+
+# --- Validaciones (nada raro entra a un comando ni a un archivo) ---
+[[ "$TENANT_ID" =~ ^[a-z0-9-]{3,30}$ ]] || { echo "TENANT_ID invalido: '$TENANT_ID'"; exit 1; }
+[[ "$DB_VOLUME_GB" =~ ^[0-9]{1,4}$ ]] || { echo "DB_VOLUME_GB invalido: '$DB_VOLUME_GB'"; exit 1; }
+ADMIN_EMAIL="${ADMIN_EMAIL:-admin@${TENANT_ID}.local}"
+[[ "$ADMIN_EMAIL" =~ ^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+$ ]] || { echo "ADMIN_EMAIL invalido"; exit 1; }
+
+secreto() { openssl rand -hex 24; }
+DB_PASSWORD="${DB_PASSWORD:-$(secreto)}"
+JWT_SECRET="${JWT_SECRET:-$(secreto)}"
+if [ -z "$ADMIN_PASSWORD" ]; then
+  ADMIN_PASSWORD="$(openssl rand -base64 24 | tr -dc 'A-Za-z0-9' | head -c 16)Aa1"
+  CLAVE_GENERADA=si
+else
+  CLAVE_GENERADA=no
+fi
+[[ "$DB_PASSWORD" =~ ^[A-Za-z0-9]{8,64}$ ]]       || { echo "DB_PASSWORD invalida (solo letras y numeros)"; exit 1; }
+[[ "$JWT_SECRET" =~ ^[A-Za-z0-9]{16,128}$ ]]      || { echo "JWT_SECRET invalido (solo letras y numeros)"; exit 1; }
+[[ "$ADMIN_PASSWORD" =~ ^[A-Za-z0-9._@%+=-]{8,64}$ ]] || { echo "ADMIN_PASSWORD invalida (8 a 64 caracteres sin espacios ni comillas)"; exit 1; }
+
+echo "Tenant: $TENANT_ID | espacio de BD del plan: ${DB_VOLUME_GB} GB | datos de ejemplo: ${SEED_DATA:-no}"
+
+# --- Limites del plan: el disco debe alcanzar para el espacio de BD (el disco crece solo en el primer arranque) ---
+DISCO_GB="$(df -BG --output=size / | tail -n1 | tr -dc '0-9')"
+echo "Disco de la VM: ${DISCO_GB} GB"
+[ "$DISCO_GB" -ge "$DB_VOLUME_GB" ] || echo "AVISO: el disco (${DISCO_GB} GB) es menor que el plan (${DB_VOLUME_GB} GB)"
+
+# --- MySQL: memoria segun el tamano de la VM (25 % de la RAM para el buffer de InnoDB) ---
+MEM_MB="$(awk '/MemTotal/ {printf "%d", $2/1024}' /proc/meminfo)"
+BUFFER_MB=$(( MEM_MB / 4 ))
+[ "$BUFFER_MB" -lt 128 ] && BUFFER_MB=128
+cat > /etc/mysql/mysql.conf.d/zz-tenant.cnf <<CNF
+[mysqld]
+innodb_buffer_pool_size = ${BUFFER_MB}M
+CNF
+chmod 644 /etc/mysql/mysql.conf.d/zz-tenant.cnf
+systemctl restart mysql
+for _ in $(seq 1 30); do mysqladmin ping --silent && break; sleep 2; done
+mysqladmin ping --silent
+
+# --- Base de datos y usuario propios de este tenant ---
+mysql <<SQL
+CREATE DATABASE IF NOT EXISTS asistencia CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+CREATE USER IF NOT EXISTS 'asistencia'@'localhost' IDENTIFIED BY '${DB_PASSWORD}';
+CREATE USER IF NOT EXISTS 'asistencia'@'127.0.0.1' IDENTIFIED BY '${DB_PASSWORD}';
+ALTER USER 'asistencia'@'localhost' IDENTIFIED BY '${DB_PASSWORD}';
+ALTER USER 'asistencia'@'127.0.0.1' IDENTIFIED BY '${DB_PASSWORD}';
+GRANT ALL PRIVILEGES ON asistencia.* TO 'asistencia'@'localhost';
+GRANT ALL PRIVILEGES ON asistencia.* TO 'asistencia'@'127.0.0.1';
+FLUSH PRIVILEGES;
+SQL
+
+# --- .env de la app (en la raiz del repo, donde lo busca el backend) ---
+cat > "$APP/.env" <<ENVAPP
+NODE_ENV=production
+PORT=8000
+DB_HOST=127.0.0.1
+DB_PORT=3306
+MYSQL_DATABASE=asistencia
+MYSQL_USER=asistencia
+MYSQL_PASSWORD=${DB_PASSWORD}
+JWT_SECRET=${JWT_SECRET}
+JWT_MINUTOS=480
+ADMIN_EMAIL=${ADMIN_EMAIL}
+ADMIN_PASSWORD='${ADMIN_PASSWORD}'
+TZ=America/La_Paz
+CORS_ORIGINS=http://localhost
+ENVAPP
+chown asistencia:asistencia "$APP/.env"
+chmod 600 "$APP/.env"
+
+# --- Migraciones y administrador ---
+sudo -u asistencia -H bash -c "cd $APP/backend && NODE_ENV=production npm run migrate"
+if [ "$SEED_DATA" = "true" ]; then
+  sudo -u asistencia -H bash -c "cd $APP/backend && NODE_ENV=production npm run seed"
+else
+  sudo -u asistencia -H bash -c "cd $APP/backend && NODE_ENV=production node /opt/tenant/crear-admin.js"
+fi
+
+# --- Arrancar el backend y comprobar que responde ---
+systemctl daemon-reload
+systemctl enable --now asistencia-backend
+for _ in $(seq 1 30); do curl -fs http://127.0.0.1:8000/api/health >/dev/null && break; sleep 2; done
+curl -fs http://127.0.0.1:8000/api/health
+echo
+systemctl reload nginx
+
+# --- Credenciales del administrador del tenant (solo root) ---
+cat > /etc/tenant/credenciales <<CRED
+TENANT_ID=${TENANT_ID}
+ADMIN_EMAIL=${ADMIN_EMAIL}
+ADMIN_PASSWORD=${ADMIN_PASSWORD}
+CLAVE_GENERADA=${CLAVE_GENERADA}
+CRED
+chmod 600 /etc/tenant/credenciales
+
+rm -f "$ESTADO/fallido"
+date -Is > "$MARCA"
+echo "=== Tenant ${TENANT_ID} configurado ==="
