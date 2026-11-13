@@ -121,14 +121,17 @@ setInterval(() => {
 
 console.log('=== Iniciando Exporters Simulados para Pruebas de Observabilidad ===');
 
-// Tenant 1: san-marcos
-crearServidor(3000, () => generarMetricasApp('san-marcos', 'produccion', requestCountSM, 0.01));
+// Tenant 1: san-marcos (App en 3002 para no chocar con el Grafana de Windows en 3000)
+crearServidor(3002, () => generarMetricasApp('san-marcos', 'produccion', requestCountSM, 0.01));
 crearServidor(9100, () => generarMetricasNode('san-marcos', 'produccion', cpuSecsSM, 0.45, 0.60));
 crearServidor(9104, () => generarMetricasMySQL('san-marcos', 'produccion', 12, 85));
 
-// Tenant 2: norte (provoca intencionalmente CPU alta o alerta si se desea)
+// Tenant 2: norte (provoca intencionalmente alerta de disco > 85%)
 crearServidor(3001, () => generarMetricasApp('norte', 'desarrollo', requestCountNorte, 0.08));
 crearServidor(9101, () => generarMetricasNode('norte', 'desarrollo', cpuSecsNorte, 0.88, 0.86)); // Disco > 85% para disparar alerta de ejemplo
 crearServidor(9105, () => generarMetricasMySQL('norte', 'desarrollo', 4, 25));
 
-console.log('Simuladores activos. Abre Grafana en http://localhost:3000 y Prometheus en http://localhost:9090');
+console.log('Simuladores activos.');
+console.log('Grafana (Docker):     http://localhost:3030');
+console.log('Prometheus:           http://localhost:9090');
+console.log('Alertmanager:         http://localhost:9093');

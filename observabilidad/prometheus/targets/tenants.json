@@ -1,6 +1,6 @@
 [
   {
-    "targets": ["127.0.0.1:9100"],
+    "targets": ["host.docker.internal:9100"],
     "labels": {
       "job": "node",
       "tenant_id": "san-marcos",
@@ -10,7 +10,7 @@
     }
   },
   {
-    "targets": ["127.0.0.1:3000"],
+    "targets": ["host.docker.internal:3002"],
     "labels": {
       "job": "app",
       "tenant_id": "san-marcos",
@@ -19,7 +19,7 @@
     }
   },
   {
-    "targets": ["127.0.0.1:9104"],
+    "targets": ["host.docker.internal:9104"],
     "labels": {
       "job": "mysql",
       "tenant_id": "san-marcos",
@@ -28,7 +28,7 @@
     }
   },
   {
-    "targets": ["127.0.0.1:9101"],
+    "targets": ["host.docker.internal:9101"],
     "labels": {
       "job": "node",
       "tenant_id": "norte",
@@ -38,7 +38,7 @@
     }
   },
   {
-    "targets": ["127.0.0.1:3001"],
+    "targets": ["host.docker.internal:3001"],
     "labels": {
       "job": "app",
       "tenant_id": "norte",
@@ -47,7 +47,7 @@
     }
   },
   {
-    "targets": ["127.0.0.1:9105"],
+    "targets": ["host.docker.internal:9105"],
     "labels": {
       "job": "mysql",
       "tenant_id": "norte",
