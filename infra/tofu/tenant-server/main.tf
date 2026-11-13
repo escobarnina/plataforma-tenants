@@ -83,8 +83,10 @@ resource "aws_instance" "tenant" {
 
   # Primer arranque: cloud-init escribe la configuracion de este tenant.
   user_data = templatefile("${path.module}/cloud-init.tftpl", {
-    tenant_id    = var.tenant_id
-    db_volume_gb = var.db_volume_gb
+    tenant_id      = var.tenant_id
+    db_volume_gb   = var.db_volume_gb
+    admin_password = var.admin_password
+    seed_data      = var.seed_data
   })
   user_data_replace_on_change = true
 

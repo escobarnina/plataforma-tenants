@@ -24,12 +24,22 @@ Parameters:
     Type: String
     Default: ""
     Description: AMI de Packer (Integrante 3). Vacio = Ubuntu 24.04 estandar.
+  AdminPassword:
+    Type: String
+    NoEcho: true
+    Default: ""
+    Description: Clave inicial del administrador. Vacio = la VM genera una y la guarda en /etc/tenant/credenciales.
+  SeedData:
+    Type: String
+    AllowedValues: ["true", "false"]
+    Default: "false"
+    Description: true = la app arranca con datos de ejemplo (para pruebas).
   UbuntuAmi:
     Type: AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>
     Default: /aws/service/canonical/ubuntu/server/24.04/stable/current/amd64/hvm/ebs-gp3/ami-id
   VersionPlantilla:
     Type: String
-    Default: "0.1.0"
+    Default: "0.3.0"
 
 Conditions:
   UsaAmiPropia: !Not [!Equals [!Ref AmiId, ""]]
@@ -76,6 +86,8 @@ Resources:
           cat > /etc/tenant/tenant.env <<ENV
           TENANT_ID=${TenantId}
           DB_VOLUME_GB=${DbVolumeGb}
+          ADMIN_PASSWORD=${AdminPassword}
+          SEED_DATA=${SeedData}
           ENV
           chmod 600 /etc/tenant/tenant.env
           if ! command -v nginx >/dev/null 2>&1; then

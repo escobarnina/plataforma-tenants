@@ -3,6 +3,7 @@
 
 const { spawn } = require('child_process');
 const fs = require('fs');
+const { datosAdmin } = require('./tenant-admin');
 const path = require('path');
 
 const PLAN_A_INSTANCIA = {
@@ -51,9 +52,12 @@ function prepararCarpeta(tenantId) {
 }
 
 // Ejecuta un comando, manda cada linea al log y falla si el codigo de salida no es 0.
+// La clave del administrador viaja por variable de entorno (TF_VAR_...), no por argumentos del comando.
 function ejecutar(comando, args, cwd, onLog, soloStdout = false) {
+  const { adminPassword, seedData } = datosAdmin();
+  const env = { ...process.env, TF_VAR_admin_password: adminPassword, TF_VAR_seed_data: String(seedData) };
   return new Promise((resolve, reject) => {
-    const proceso = spawn(comando, args, { cwd });
+    const proceso = spawn(comando, args, { cwd, env });
     let salida = '';
     const recibir = (esStdout) => (datos) => {
       const texto = ocultarSecretos(datos.toString());
@@ -77,7 +81,7 @@ function variables(tenant) {
     '-var', `db_volume_gb=${PLAN_A_DB_GB[tenant.plan]}`,
     '-var', `region=${tenant.region || 'us-east-1'}`,
   ];
-  // Cuando el Integrante 3 entregue la AMI de Packer: AMI_ID=ami-... en el .env.
+  // AMI de Packer (Integrante 3): AMI_ID=ami-... en el .env. Sin AMI usa Ubuntu estandar.
   if (/^ami-[0-9a-f]{8,17}$/.test(process.env.AMI_ID || '')) {
     lista.push('-var', `ami_id=${process.env.AMI_ID}`);
   }
