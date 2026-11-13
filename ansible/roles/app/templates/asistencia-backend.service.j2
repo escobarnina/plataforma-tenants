@@ -1,0 +1,16 @@
+[Unit]
+Description=Mi-asistencia - Backend (Node/Express)
+After=network.target mysql.service
+Requires=mysql.service
+ConditionPathExists=/opt/asistencia/.env
+
+[Service]
+User=asistencia
+WorkingDirectory=/opt/asistencia/backend
+Environment=NODE_ENV=production
+ExecStart=/usr/bin/node src/server.js
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
