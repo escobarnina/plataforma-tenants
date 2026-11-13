@@ -15,7 +15,7 @@ const usuarios = [
 const planes = [
   { id: 'basico', nombre: 'Basico', instance_type: 't3.micro', db_volume_gb: 10, capacidad_estudiantes: 100, nube: 'aws' },
   { id: 'estandar', nombre: 'Estandar', instance_type: 't3.small', db_volume_gb: 50, capacidad_estudiantes: 1000, nube: 'aws' },
-  { id: 'avanzado', nombre: 'Avanzado', instance_type: 't3.medium', db_volume_gb: 200, capacidad_estudiantes: 5000, nube: 'aws' },
+  { id: 'avanzado', nombre: 'Avanzado', instance_type: 'c7i-flex.large', db_volume_gb: 200, capacidad_estudiantes: 5000, nube: 'aws' },
 ];
 
 const base = (t) => ({
@@ -33,7 +33,7 @@ let sigOp = 4;
 const operaciones = [
   { id: 1, tenant_id: 'san-marcos', tipo: 'crear', estado: 'completada', intentos: 1, log: 'tofu init\nPlan: 3 to add, 0 to change, 0 to destroy.\nApply complete! Resources: 3 added.\n', error: null, creada_en: hace(3000), iniciada_en: hace(3000), terminada_en: hace(2990) },
   { id: 2, tenant_id: 'andes', tipo: 'suspender', estado: 'completada', intentos: 1, log: 'Deteniendo instancia i-0e5f6a7b...\nInstancia detenida. Disco y BD conservados.\n', error: null, creada_en: hace(61), iniciada_en: hace(61), terminada_en: hace(60) },
-  { id: 3, tenant_id: 'norte', tipo: 'crear', estado: 'fallida', intentos: 1, log: 'pulumi up\nCreating aws:ec2:Instance...\n', error: 'No hay capacidad para t3.medium en la zona elegida. Reintenta en unos minutos.', creada_en: hace(90), iniciada_en: hace(90), terminada_en: hace(85) },
+  { id: 3, tenant_id: 'norte', tipo: 'crear', estado: 'fallida', intentos: 1, log: 'pulumi up\nCreating aws:ec2:Instance...\n', error: 'No hay capacidad para c7i-flex.large en la zona elegida. Reintenta en unos minutos.', creada_en: hace(90), iniciada_en: hace(90), terminada_en: hace(85) },
 ];
 
 const deploymentsVersion = { app: '1.0.0', plantilla: 'tenant-server 0.1.0' };
