@@ -1,0 +1,58 @@
+[
+  {
+    "targets": ["127.0.0.1:9100"],
+    "labels": {
+      "job": "node",
+      "tenant_id": "san-marcos",
+      "entorno": "produccion",
+      "plan": "estandar",
+      "instance_type": "t3.small"
+    }
+  },
+  {
+    "targets": ["127.0.0.1:3000"],
+    "labels": {
+      "job": "app",
+      "tenant_id": "san-marcos",
+      "entorno": "produccion",
+      "plan": "estandar"
+    }
+  },
+  {
+    "targets": ["127.0.0.1:9104"],
+    "labels": {
+      "job": "mysql",
+      "tenant_id": "san-marcos",
+      "entorno": "produccion",
+      "plan": "estandar"
+    }
+  },
+  {
+    "targets": ["127.0.0.1:9101"],
+    "labels": {
+      "job": "node",
+      "tenant_id": "norte",
+      "entorno": "desarrollo",
+      "plan": "basico",
+      "instance_type": "t3.micro"
+    }
+  },
+  {
+    "targets": ["127.0.0.1:3001"],
+    "labels": {
+      "job": "app",
+      "tenant_id": "norte",
+      "entorno": "desarrollo",
+      "plan": "basico"
+    }
+  },
+  {
+    "targets": ["127.0.0.1:9105"],
+    "labels": {
+      "job": "mysql",
+      "tenant_id": "norte",
+      "entorno": "desarrollo",
+      "plan": "basico"
+    }
+  }
+]

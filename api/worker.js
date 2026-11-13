@@ -12,6 +12,7 @@ if (!['fake', 'tofu'].includes(nombreMotor)) {
 const motor = require(`./motor-${nombreMotor}`);
 // Suspender/reanudar: el motor falso lo simula; con tofu se usa el AWS CLI (ec2-energia.js).
 const energia = nombreMotor === 'fake' ? motor : require('./ec2-energia');
+const { sincronizarTargets } = require('./sync-targets');
 
 // Toma UNA operacion pendiente. SKIP LOCKED evita que dos workers tomen la misma.
 async function tomarOperacion() {
@@ -82,6 +83,8 @@ async function procesar(operacion) {
     }
 
     await pool.query(`UPDATE operations SET estado = 'completada', terminada_en = now() WHERE id = $1`, [operacion.id]);
+    // Sincroniza Prometheus file_sd despues de cualquier cambio de estado (crear, suspender, reanudar, eliminar)
+    await sincronizarTargets().catch((e) => console.error('Error al actualizar targets de monitoreo:', e.message));
   } catch (error) {
     await cola;
     await pool.query(`UPDATE tenants SET estado = 'fallido', actualizado_en = now() WHERE id = $1`, [tenant.id]);

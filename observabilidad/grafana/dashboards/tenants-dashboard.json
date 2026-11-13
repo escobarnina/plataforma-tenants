@@ -1,0 +1,560 @@
+{
+  "annotations": {
+    "list": [
+      {
+        "builtIn": 1,
+        "datasource": {
+          "type": "grafana",
+          "uid": "-- Grafana --"
+        },
+        "enable": true,
+        "hide": true,
+        "name": "Annotations & Alerts",
+        "type": "dashboard"
+      }
+    ]
+  },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 1,
+  "id": null,
+  "links": [],
+  "liveNow": false,
+  "panels": [
+    {
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 0 },
+      "id": 100,
+      "title": "Salud General y Estado de Servicios (RF-26)",
+      "type": "row"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "mappings": [
+            { "options": { "0": { "color": "red", "text": "DOWN" }, "1": { "color": "green", "text": "ONLINE" } }, "type": "value" }
+          ],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "red", "value": null },
+              { "color": "green", "value": 1 }
+            ]
+          }
+        }
+      },
+      "gridPos": { "h": 4, "w": 6, "x": 0, "y": 1 },
+      "id": 1,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "textMode": "auto"
+      },
+      "pluginVersion": "10.0.0",
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "Prometheus" },
+          "editorMode": "code",
+          "expr": "max(up{job=\"app\", tenant_id=~\"$tenant\", entorno=~\"$entorno\"})",
+          "legendFormat": "App",
+          "range": true,
+          "refId": "A"
+        }
+      ],
+      "title": "Disponibilidad Backend / API",
+      "type": "stat"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "mappings": [
+            { "options": { "0": { "color": "red", "text": "DOWN" }, "1": { "color": "green", "text": "ONLINE" } }, "type": "value" }
+          ],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "red", "value": null },
+              { "color": "green", "value": 1 }
+            ]
+          }
+        }
+      },
+      "gridPos": { "h": 4, "w": 6, "x": 6, "y": 1 },
+      "id": 2,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "textMode": "auto"
+      },
+      "pluginVersion": "10.0.0",
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "Prometheus" },
+          "editorMode": "code",
+          "expr": "max(mysql_up{tenant_id=~\"$tenant\", entorno=~\"$entorno\"}) or max(up{job=\"mysql\", tenant_id=~\"$tenant\", entorno=~\"$entorno\"})",
+          "legendFormat": "MySQL",
+          "range": true,
+          "refId": "A"
+        }
+      ],
+      "title": "Estado Base de Datos MySQL",
+      "type": "stat"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "mappings": [
+            { "options": { "0": { "color": "red", "text": "DOWN" }, "1": { "color": "green", "text": "UP" } }, "type": "value" }
+          ],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "red", "value": null },
+              { "color": "green", "value": 1 }
+            ]
+          }
+        }
+      },
+      "gridPos": { "h": 4, "w": 6, "x": 12, "y": 1 },
+      "id": 3,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "textMode": "auto"
+      },
+      "pluginVersion": "10.0.0",
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "Prometheus" },
+          "editorMode": "code",
+          "expr": "max(up{job=\"node\", tenant_id=~\"$tenant\", entorno=~\"$entorno\"})",
+          "legendFormat": "OS Node",
+          "range": true,
+          "refId": "A"
+        }
+      ],
+      "title": "Servidor EC2 / Sistema Operativo",
+      "type": "stat"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "yellow", "value": 1 },
+              { "color": "red", "value": 2 }
+            ]
+          },
+          "unit": "short"
+        }
+      },
+      "gridPos": { "h": 4, "w": 6, "x": 18, "y": 1 },
+      "id": 4,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "textMode": "auto"
+      },
+      "pluginVersion": "10.0.0",
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "Prometheus" },
+          "editorMode": "code",
+          "expr": "sum(ALERTS{alertstate=\"firing\", tenant_id=~\"$tenant\"}) or vector(0)",
+          "legendFormat": "Alertas Activas",
+          "range": true,
+          "refId": "A"
+        }
+      ],
+      "title": "Alertas Activas (RF-28)",
+      "type": "stat"
+    },
+    {
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 5 },
+      "id": 101,
+      "title": "Aplicación: Rendimiento, Latencia y Errores (RF-26)",
+      "type": "row"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "drawStyle": "line",
+            "lineInterpolation": "smooth"
+          },
+          "unit": "reqps"
+        }
+      },
+      "gridPos": { "h": 7, "w": 8, "x": 0, "y": 6 },
+      "id": 5,
+      "options": { "tooltip": { "mode": "multi" } },
+      "title": "Peticiones por Segundo (Throughput)",
+      "type": "timeseries",
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "Prometheus" },
+          "expr": "sum by (tenant_id) (rate(http_requests_total{tenant_id=~\"$tenant\", entorno=~\"$entorno\"}[1m]))",
+          "legendFormat": "{{tenant_id}} (req/s)",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "drawStyle": "line",
+            "lineInterpolation": "smooth"
+          },
+          "unit": "s"
+        }
+      },
+      "gridPos": { "h": 7, "w": 8, "x": 8, "y": 6 },
+      "id": 6,
+      "options": { "tooltip": { "mode": "multi" } },
+      "title": "Latencia del Backend (p95 y p99)",
+      "type": "timeseries",
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "Prometheus" },
+          "expr": "histogram_quantile(0.95, sum by (le, tenant_id) (rate(http_request_duration_seconds_bucket{tenant_id=~\"$tenant\", entorno=~\"$entorno\"}[2m])))",
+          "legendFormat": "{{tenant_id}} - p95",
+          "refId": "A"
+        },
+        {
+          "datasource": { "type": "prometheus", "uid": "Prometheus" },
+          "expr": "histogram_quantile(0.99, sum by (le, tenant_id) (rate(http_request_duration_seconds_bucket{tenant_id=~\"$tenant\", entorno=~\"$entorno\"}[2m])))",
+          "legendFormat": "{{tenant_id}} - p99",
+          "refId": "B"
+        }
+      ]
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "drawStyle": "line",
+            "lineInterpolation": "smooth"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "red", "value": 5 }
+            ]
+          },
+          "unit": "percent"
+        }
+      },
+      "gridPos": { "h": 7, "w": 8, "x": 16, "y": 6 },
+      "id": 7,
+      "options": { "tooltip": { "mode": "multi" } },
+      "title": "Tasa de Errores 5xx (%)",
+      "type": "timeseries",
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "Prometheus" },
+          "expr": "(sum by (tenant_id) (rate(http_requests_total{status=~\"5..\", tenant_id=~\"$tenant\", entorno=~\"$entorno\"}[2m])) / sum by (tenant_id) (rate(http_requests_total{tenant_id=~\"$tenant\", entorno=~\"$entorno\"}[2m]))) * 100",
+          "legendFormat": "{{tenant_id}} - 5xx %",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 13 },
+      "id": 102,
+      "title": "Recursos de Servidor EC2: CPU, Memoria, Disco y Red (RF-26)",
+      "type": "row"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "drawStyle": "line",
+            "lineInterpolation": "smooth"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "yellow", "value": 70 },
+              { "color": "red", "value": 80 }
+            ]
+          },
+          "unit": "percent"
+        }
+      },
+      "gridPos": { "h": 7, "w": 6, "x": 0, "y": 14 },
+      "id": 8,
+      "options": { "tooltip": { "mode": "multi" } },
+      "title": "Uso de CPU (%)",
+      "type": "timeseries",
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "Prometheus" },
+          "expr": "100 - (avg by (tenant_id) (rate(node_cpu_seconds_total{mode=\"idle\", tenant_id=~\"$tenant\", entorno=~\"$entorno\"}[2m])) * 100)",
+          "legendFormat": "{{tenant_id}} CPU",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "drawStyle": "line",
+            "lineInterpolation": "smooth"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "yellow", "value": 75 },
+              { "color": "red", "value": 90 }
+            ]
+          },
+          "unit": "percent"
+        }
+      },
+      "gridPos": { "h": 7, "w": 6, "x": 6, "y": 14 },
+      "id": 9,
+      "options": { "tooltip": { "mode": "multi" } },
+      "title": "Uso de Memoria RAM (%)",
+      "type": "timeseries",
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "Prometheus" },
+          "expr": "(1 - (node_memory_MemAvailable_bytes{tenant_id=~\"$tenant\", entorno=~\"$entorno\"} / node_memory_MemTotal_bytes{tenant_id=~\"$tenant\", entorno=~\"$entorno\"})) * 100",
+          "legendFormat": "{{tenant_id}} RAM",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "drawStyle": "line",
+            "lineInterpolation": "smooth"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "yellow", "value": 75 },
+              { "color": "red", "value": 85 }
+            ]
+          },
+          "unit": "percent"
+        }
+      },
+      "gridPos": { "h": 7, "w": 6, "x": 12, "y": 14 },
+      "id": 10,
+      "options": { "tooltip": { "mode": "multi" } },
+      "title": "Ocupación de Disco (%)",
+      "type": "timeseries",
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "Prometheus" },
+          "expr": "(1 - (node_filesystem_free_bytes{mountpoint=\"/\", tenant_id=~\"$tenant\", entorno=~\"$entorno\"} / node_filesystem_size_bytes{mountpoint=\"/\", tenant_id=~\"$tenant\", entorno=~\"$entorno\"})) * 100",
+          "legendFormat": "{{tenant_id}} Disco",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "drawStyle": "line",
+            "lineInterpolation": "smooth"
+          },
+          "unit": "Bps"
+        }
+      },
+      "gridPos": { "h": 7, "w": 6, "x": 18, "y": 14 },
+      "id": 11,
+      "options": { "tooltip": { "mode": "multi" } },
+      "title": "Tráfico de Red (RX / TX)",
+      "type": "timeseries",
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "Prometheus" },
+          "expr": "sum by (tenant_id) (rate(node_network_receive_bytes_total{device!=\"lo\", tenant_id=~\"$tenant\", entorno=~\"$entorno\"}[2m]))",
+          "legendFormat": "{{tenant_id}} Entrada (RX)",
+          "refId": "A"
+        },
+        {
+          "datasource": { "type": "prometheus", "uid": "Prometheus" },
+          "expr": "sum by (tenant_id) (rate(node_network_transmit_bytes_total{device!=\"lo\", tenant_id=~\"$tenant\", entorno=~\"$entorno\"}[2m]))",
+          "legendFormat": "{{tenant_id}} Salida (TX)",
+          "refId": "B"
+        }
+      ]
+    },
+    {
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 21 },
+      "id": 103,
+      "title": "Base de Datos MySQL (RF-26)",
+      "type": "row"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "drawStyle": "line",
+            "lineInterpolation": "smooth"
+          },
+          "unit": "short"
+        }
+      },
+      "gridPos": { "h": 7, "w": 8, "x": 0, "y": 22 },
+      "id": 12,
+      "options": { "tooltip": { "mode": "multi" } },
+      "title": "Conexiones MySQL Activas",
+      "type": "timeseries",
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "Prometheus" },
+          "expr": "mysql_global_status_threads_connected{tenant_id=~\"$tenant\", entorno=~\"$entorno\"}",
+          "legendFormat": "{{tenant_id}} Threads Conectados",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "drawStyle": "line",
+            "lineInterpolation": "smooth"
+          },
+          "unit": "ops"
+        }
+      },
+      "gridPos": { "h": 7, "w": 8, "x": 8, "y": 22 },
+      "id": 13,
+      "options": { "tooltip": { "mode": "multi" } },
+      "title": "Queries por Segundo (QPS)",
+      "type": "timeseries",
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "Prometheus" },
+          "expr": "rate(mysql_global_status_queries{tenant_id=~\"$tenant\", entorno=~\"$entorno\"}[1m])",
+          "legendFormat": "{{tenant_id}} QPS",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "drawStyle": "line",
+            "lineInterpolation": "smooth"
+          },
+          "unit": "bytes"
+        }
+      },
+      "gridPos": { "h": 7, "w": 8, "x": 16, "y": 22 },
+      "id": 14,
+      "options": { "tooltip": { "mode": "multi" } },
+      "title": "Tamaño de Datos InnoDB en Disco",
+      "type": "timeseries",
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "Prometheus" },
+          "expr": "mysql_global_status_innodb_page_size{tenant_id=~\"$tenant\", entorno=~\"$entorno\"} * mysql_global_status_buffer_pool_pages_data{tenant_id=~\"$tenant\", entorno=~\"$entorno\"}",
+          "legendFormat": "{{tenant_id}} Datos BD",
+          "refId": "A"
+        }
+      ]
+    }
+  ],
+  "refresh": "10s",
+  "schemaVersion": 38,
+  "style": "dark",
+  "tags": ["tenants", "observabilidad", "proyecto-final"],
+  "templating": {
+    "list": [
+      {
+        "current": { "selected": true, "text": "All", "value": "$__all" },
+        "datasource": { "type": "prometheus", "uid": "Prometheus" },
+        "definition": "label_values(up, tenant_id)",
+        "hide": 0,
+        "includeAll": true,
+        "label": "Tenant",
+        "multi": true,
+        "name": "tenant",
+        "options": [],
+        "query": { "query": "label_values(up, tenant_id)", "refId": "StandardVariableQuery" },
+        "refresh": 1,
+        "regex": "",
+        "skipUrlSync": false,
+        "sort": 1,
+        "type": "query"
+      },
+      {
+        "current": { "selected": true, "text": "All", "value": "$__all" },
+        "datasource": { "type": "prometheus", "uid": "Prometheus" },
+        "definition": "label_values(up, entorno)",
+        "hide": 0,
+        "includeAll": true,
+        "label": "Entorno",
+        "multi": true,
+        "name": "entorno",
+        "options": [],
+        "query": { "query": "label_values(up, entorno)", "refId": "StandardVariableQuery" },
+        "refresh": 1,
+        "regex": "",
+        "skipUrlSync": false,
+        "sort": 1,
+        "type": "query"
+      }
+    ]
+  },
+  "time": {
+    "from": "now-15m",
+    "to": "now"
+  },
+  "timepicker": {
+    "refresh_intervals": ["5s", "10s", "30s", "1m", "5m"]
+  },
+  "timezone": "browser",
+  "title": "Salud y Rendimiento de Tenants",
+  "uid": "tenants-overview",
+  "version": 1
+}

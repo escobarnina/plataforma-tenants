@@ -192,5 +192,94 @@ app.post(
   })
 );
 
+// --- OBSERVABILIDAD (RF-28 y RF-29) ---
+
+// Listar alertas (RF-29): la consola web las consulta por tenant o estado.
+app.get(
+  '/alertas',
+  ruta(async (req, res) => {
+    const filtros = [];
+    const valores = [];
+    if (req.query.tenant) {
+      valores.push(req.query.tenant);
+      filtros.push(`tenant_id = $${valores.length}`);
+    }
+    if (req.query.estado) {
+      valores.push(req.query.estado);
+      filtros.push(`estado = $${valores.length}`);
+    }
+    const donde = filtros.length ? `WHERE ${filtros.join(' AND ')}` : '';
+    const { rows } = await pool.query(
+      `SELECT * FROM alerts ${donde} ORDER BY detectada_en DESC LIMIT 100`,
+      valores
+    );
+    res.json(rows);
+  })
+);
+
+// Webhook para recibir alertas desde Grafana o Alertmanager (RF-28 y RF-29)
+app.post(
+  '/alertas/webhook',
+  ruta(async (req, res) => {
+    const body = req.body || {};
+    // Soporta formato Alertmanager o formato Grafana Alerting
+    let alertasEntrantes = [];
+
+    if (Array.isArray(body.alerts)) {
+      // Formato Alertmanager
+      alertasEntrantes = body.alerts.map((a) => ({
+        tenant_id: a.labels?.tenant_id || a.labels?.tenant || null,
+        nombre: a.labels?.alertname || 'Alerta',
+        severidad: a.labels?.severity || 'warning',
+        estado: a.status === 'resolved' ? 'resuelta' : 'activa',
+        detalle: a.annotations?.description || a.annotations?.summary || 'Alerta generada por el sistema de monitoreo',
+        detectada_en: a.startsAt || new Date().toISOString(),
+      }));
+    } else if (body.ruleName || body.title) {
+      // Formato Grafana legacy / webhook directo
+      alertasEntrantes.push({
+        tenant_id: body.tags?.tenant_id || body.tags?.tenant || null,
+        nombre: body.ruleName || body.title || 'Alerta Grafana',
+        severidad: body.state === 'alerting' ? 'critical' : 'warning',
+        estado: body.state === 'ok' ? 'resuelta' : 'activa',
+        detalle: body.message || 'Alerta detectada en Grafana',
+        detectada_en: new Date().toISOString(),
+      });
+    } else if (body.nombre) {
+      // Formato manual o directo
+      alertasEntrantes.push({
+        tenant_id: body.tenant_id || null,
+        nombre: body.nombre,
+        severidad: body.severidad || 'warning',
+        estado: body.estado || 'activa',
+        detalle: body.detalle || '',
+        detectada_en: body.detectada_en || new Date().toISOString(),
+      });
+    }
+
+    const insertadas = [];
+    for (const a of alertasEntrantes) {
+      const { rows } = await pool.query(
+        `INSERT INTO alerts (tenant_id, nombre, severidad, estado, detalle, detectada_en)
+         VALUES ($1, $2, $3, $4, $5, $6) RETURNING *`,
+        [a.tenant_id, a.nombre, a.severidad, a.estado, a.detalle, a.detectada_en]
+      );
+      insertadas.push(rows[0]);
+    }
+
+    res.status(201).json({ recibidas: insertadas.length, alertas: insertadas });
+  })
+);
+
+// Endpoint para forzar sincronizacion de targets de Prometheus
+const { sincronizarTargets } = require('./sync-targets');
+app.post(
+  '/monitoreo/sync-targets',
+  ruta(async (req, res) => {
+    const targets = await sincronizarTargets();
+    res.json({ ok: true, total_grupos: targets.length });
+  })
+);
+
 const puerto = Number(process.env.PORT || 4000);
 app.listen(puerto, () => console.log(`API escuchando en http://localhost:${puerto}`));
