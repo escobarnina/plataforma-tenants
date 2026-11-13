@@ -1,0 +1,3 @@
+name: tenant-server
+runtime: nodejs
+description: Tenant de la plataforma con Pulumi (equivale al modulo tenant-server de OpenTofu)
