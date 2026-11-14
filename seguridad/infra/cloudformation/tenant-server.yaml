@@ -1,0 +1,103 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: >-
+  Tenant de la plataforma: firewall (salida libre por defecto) + una VM con disco cifrado (equivale al modulo
+  tenant-server de OpenTofu). Todo recurso lleva la etiqueta tenant_id.
+
+Parameters:
+  TenantId:
+    Type: String
+    Description: Id del tenant (minusculas, numeros y guiones, 3 a 30 caracteres).
+    AllowedPattern: "^[a-z0-9-]{3,30}$"
+  InstanceType:
+    Type: String
+    Default: t3.micro
+    Description: basico t3.micro, estandar t3.small, avanzado c7i-flex.large.
+  DbVolumeGb:
+    Type: Number
+    Default: 10
+    Description: Espacio para la base de datos segun el plan (10, 50 o 200).
+  RootVolumeGb:
+    Type: Number
+    Default: 18
+    Description: Disco total. La plataforma lo calcula como 8 + DbVolumeGb.
+  AmiId:
+    Type: String
+    Default: ""
+    Description: AMI de Packer (Integrante 3). Vacio = Ubuntu 24.04 estandar.
+  UbuntuAmi:
+    Type: AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>
+    Default: /aws/service/canonical/ubuntu/server/24.04/stable/current/amd64/hvm/ebs-gp3/ami-id
+  VersionPlantilla:
+    Type: String
+    Default: "0.1.0"
+
+Conditions:
+  UsaAmiPropia: !Not [!Equals [!Ref AmiId, ""]]
+
+Resources:
+  SecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: !Sub "Firewall del tenant ${TenantId}"
+      SecurityGroupIngress:
+        - Description: Web (nginx de la app)
+          IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          CidrIp: 0.0.0.0/0
+      Tags:
+        - Key: tenant_id
+          Value: !Ref TenantId
+        - Key: Name
+          Value: !Sub "tenant-${TenantId}-sg"
+
+  Instance:
+    Type: AWS::EC2::Instance
+    Properties:
+      ImageId: !If [UsaAmiPropia, !Ref AmiId, !Ref UbuntuAmi]
+      InstanceType: !Ref InstanceType
+      SecurityGroupIds:
+        - !GetAtt SecurityGroup.GroupId
+      BlockDeviceMappings:
+        - DeviceName: /dev/sda1
+          Ebs:
+            VolumeType: gp3
+            VolumeSize: !Ref RootVolumeGb
+            Encrypted: true
+      MetadataOptions:
+        HttpTokens: required
+        HttpEndpoint: enabled
+      UserData:
+        Fn::Base64: !Sub |
+          #!/bin/bash
+          # Primer arranque de la VM del tenant ${TenantId}.
+          set -e
+          mkdir -p /etc/tenant
+          cat > /etc/tenant/tenant.env <<ENV
+          TENANT_ID=${TenantId}
+          DB_VOLUME_GB=${DbVolumeGb}
+          ENV
+          chmod 600 /etc/tenant/tenant.env
+          if ! command -v nginx >/dev/null 2>&1; then
+            apt-get update -y
+            apt-get install -y nginx
+          fi
+          echo "Tenant ${TenantId} funcionando" > /var/www/html/index.html
+          systemctl enable --now nginx
+      Tags:
+        - Key: Name
+          Value: !Sub "tenant-${TenantId}"
+        - Key: tenant_id
+          Value: !Ref TenantId
+
+Outputs:
+  TenantId:
+    Value: !Ref TenantId
+  InstanceId:
+    Value: !Ref Instance
+  PublicIp:
+    Value: !GetAtt Instance.PublicIp
+  Url:
+    Value: !Sub "http://${Instance.PublicIp}"
+  VersionPlantilla:
+    Value: !Ref VersionPlantilla
