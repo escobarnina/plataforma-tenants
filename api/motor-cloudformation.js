@@ -4,7 +4,7 @@
 const { spawn } = require('child_process');
 const fs = require('fs');
 const path = require('path');
-const { datosAdmin } = require('./tenant-admin');
+const { datosAdmin, cidrMonitoreo } = require('./tenant-admin');
 
 const PLAN_A_INSTANCIA = { basico: 't3.micro', estandar: 't3.small', avanzado: 'c7i-flex.large' };
 const PLAN_A_DB_GB = { basico: 10, estandar: 50, avanzado: 200 };
@@ -61,6 +61,8 @@ async function apply(tenant, onLog = () => {}) {
   ];
   if (adminPassword) parametros.push(`AdminPassword=${adminPassword}`);
   if (/^ami-[0-9a-f]{8,17}$/.test(process.env.AMI_ID || '')) parametros.push(`AmiId=${process.env.AMI_ID}`);
+  const cidr = cidrMonitoreo();
+  if (cidr) parametros.push(`MonitoringCidr=${cidr}`);
 
   onLog(`[cloudformation] desplegando stack ${nombreStack(tenant)}...`);
   await aws(

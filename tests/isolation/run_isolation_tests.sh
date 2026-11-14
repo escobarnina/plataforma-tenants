@@ -59,6 +59,19 @@ else
   falla "Falta la etiqueta tenant_id en los recursos"
 fi
 
+# 8. Los puertos de metricas (9100, 9104, 3000) solo se abren a la IP de Prometheus, nunca a todo internet.
+VARS="infra/tofu/tenant-server/variables.tf"
+CFN="infra/cloudformation/tenant-server.yaml"
+metricas_ok=true
+grep -q 'cidr_blocks = \[var.monitoring_cidr\]' "$TOFU" || metricas_ok=false
+grep -q 'monitoring_cidr != "0.0.0.0/0"' "$VARS" || metricas_ok=false
+if [ -f "$CFN" ] && grep -E -A4 'FromPort: (9100|9104|3000)' "$CFN" | grep -q '0.0.0.0/0'; then metricas_ok=false; fi
+if $metricas_ok; then
+  ok "Los puertos de metricas solo se abren a la IP de Prometheus"
+else
+  falla "Los puertos de metricas pueden quedar abiertos a todo internet"
+fi
+
 # 7. No hay archivos .env ni .tfstate en el repositorio.
 secretos=$(git ls-files | grep -E '(^|/)\.env$|\.tfstate' || true)
 if [ -n "$secretos" ]; then

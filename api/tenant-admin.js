@@ -13,4 +13,15 @@ function datosAdmin() {
   return { adminPassword: clave, seedData: process.env.SEED_DATA === 'true' };
 }
 
-module.exports = { datosAdmin };
+// IP de Prometheus para abrir los puertos de metricas (9100, 9104, 3000) solo a ella.
+// Vacio = puertos cerrados. Nunca se acepta 0.0.0.0/0 (abriria las metricas a todo internet).
+function cidrMonitoreo() {
+  const cidr = (process.env.MONITORING_CIDR || '').trim();
+  if (cidr === '') return '';
+  if (cidr === '0.0.0.0/0' || !/^(\d{1,3}\.){3}\d{1,3}\/\d{1,2}$/.test(cidr)) {
+    throw new Error('MONITORING_CIDR invalido: usa la IP de Prometheus con /32 (ej. 3.80.10.20/32), nunca 0.0.0.0/0');
+  }
+  return cidr;
+}
+
+module.exports = { datosAdmin, cidrMonitoreo };
