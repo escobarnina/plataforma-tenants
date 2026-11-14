@@ -33,20 +33,29 @@ const qs = (filtros = {}) => {
   return p.toString() ? `?${p}` : '';
 };
 
+// TEMPORAL: login, previewEliminar y alertas usan el mock porque la API real
+// aun no tiene esas rutas. Cuando el Integrante 1 las agregue, usar las lineas comentadas.
 const real = {
-  login: (usuario, clave) => pedir('POST', '/login', { usuario, clave }),
+  login: mock.login, // (usuario, clave) => pedir('POST', '/login', { usuario, clave }),
   planes: () => pedir('GET', '/planes'),
   tenants: (filtros) => pedir('GET', `/tenants${qs(filtros)}`),
   tenant: (id) => pedir('GET', `/tenants/${id}`),
   crearTenant: (datos) => pedir('POST', '/tenants', datos),
   suspender: (id) => pedir('POST', `/tenants/${id}/suspender`),
   reanudar: (id) => pedir('POST', `/tenants/${id}/reanudar`),
-  previewEliminar: (id) => pedir('GET', `/tenants/${id}/eliminar/preview`),
+  // (id) => pedir('GET', `/tenants/${id}/eliminar/preview`),
+  previewEliminar: async (id) => {
+    const t = await pedir('GET', `/tenants/${id}`);
+    const recursos = [`Firewall tenant-${t.id}-sg`];
+    if (t.instance_id) recursos.unshift(`Servidor EC2 ${t.instance_id}`);
+    if (t.public_ip) recursos.push(`IP publica ${t.public_ip}`);
+    return { tenant_id: t.id, recursos, datos: ['Base de datos MySQL del tenant (usuarios, cursos y asistencia)'] };
+  },
   eliminar: (id, confirmar) => pedir('POST', `/tenants/${id}/eliminar`, { confirmar }),
   operaciones: (tenant) => pedir('GET', `/operaciones${qs({ tenant })}`),
   operacion: (id) => pedir('GET', `/operaciones/${id}`),
   reintentar: (id) => pedir('POST', `/operaciones/${id}/reintentar`),
-  alertas: (filtros) => pedir('GET', `/alertas${qs(filtros)}`),
+  alertas: mock.alertas, // (filtros) => pedir('GET', `/alertas${qs(filtros)}`),
 };
 
 export const api = USAR_MOCK ? mock : real;
