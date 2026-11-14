@@ -1,0 +1,53 @@
+﻿# CI de seguridad (Integrante 6): 3 escaneres + pruebas de aislamiento.
+# Corre en cada push y Pull Request hacia develop y main.
+name: Seguridad y aislamiento
+
+on:
+  push:
+    branches: [develop, main]
+  pull_request:
+    branches: [develop, main]
+
+# El CI solo necesita leer el codigo.
+permissions:
+  contents: read
+
+jobs:
+  semgrep:
+    name: Escaner 1 - Codigo fuente (Semgrep)
+    runs-on: ubuntu-latest
+    container:
+      image: semgrep/semgrep
+    steps:
+      - uses: actions/checkout@v4
+      - run: semgrep scan --config p/default --error
+
+  trivy:
+    name: Escaner 2 - Dependencias y secretos (Trivy)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: aquasecurity/trivy-action@0.28.0
+        with:
+          scan-type: fs
+          scan-ref: .
+          scanners: vuln,secret
+          severity: HIGH,CRITICAL
+          exit-code: '1'
+
+  kics:
+    name: Escaner 3 - Infraestructura como codigo (KICS)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: checkmarx/kics-github-action@v2.1.0
+        with:
+          path: infra
+          fail_on: high
+
+  aislamiento:
+    name: Pruebas de aislamiento entre tenants
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: bash tests/isolation/run_isolation_tests.sh
