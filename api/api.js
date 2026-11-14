@@ -4,6 +4,7 @@
 require('dotenv').config();
 const express = require('express');
 const pool = require('./db');
+const { claveCorrecta, crearToken, requiereSesion, soloPlataforma, puedeVer } = require('./auth');
 
 const app = express();
 app.use(express.json());
@@ -11,7 +12,7 @@ app.use(express.json());
 // Permite que la consola web (otro puerto) llame a esta API.
 app.use((req, res, next) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
   res.setHeader('Access-Control-Allow-Methods', 'GET,POST,OPTIONS');
   if (req.method === 'OPTIONS') return res.sendStatus(204);
   next();
@@ -53,6 +54,24 @@ app.get('/', (req, res) => {
 
 app.get('/health', (req, res) => res.json({ ok: true }));
 
+// Iniciar sesion: devuelve un token firmado con el rol y el tenant del usuario.
+app.post(
+  '/login',
+  ruta(async (req, res) => {
+    const { usuario, clave } = req.body || {};
+    if (!usuario || !clave) return res.status(400).json({ error: 'Faltan usuario y clave' });
+    const { rows } = await pool.query('SELECT * FROM users WHERE usuario = $1', [usuario]);
+    if (!rows.length || !claveCorrecta(clave, rows[0].clave_hash)) {
+      return res.status(401).json({ error: 'Usuario o clave incorrectos' });
+    }
+    const u = rows[0];
+    res.json({ token: crearToken(u), rol: u.rol, tenant_id: u.tenant_id, usuario: u.usuario });
+  })
+);
+
+// Desde aqui todas las rutas exigen sesion, salvo el webhook de Alertmanager/Grafana.
+app.use((req, res, next) => (req.path === '/alertas/webhook' ? next() : requiereSesion(req, res, next)));
+
 // Catalogo de planes (RF-01, RF-02, RF-03)
 app.get(
   '/planes',
@@ -77,6 +96,8 @@ app.get(
     agregar('estado', req.query.estado);
     agregar('plan_id', req.query.plan);
     agregar('entorno', req.query.entorno);
+    // Un admin de tenant solo ve su propia institucion.
+    if (req.sesion.rol === 'admin_tenant') agregar('id', req.sesion.tenant_id);
     const donde = filtros.length ? `WHERE ${filtros.join(' AND ')}` : '';
     const { rows } = await pool.query(`SELECT * FROM tenants ${donde} ORDER BY creado_en DESC`, valores);
     res.json(rows);
@@ -87,7 +108,8 @@ app.get(
   '/tenants/:id',
   ruta(async (req, res) => {
     const { rows } = await pool.query('SELECT * FROM tenants WHERE id = $1', [req.params.id]);
-    if (!rows.length) return res.status(404).json({ error: 'Tenant no encontrado' });
+    // Si no es suyo se responde igual que si no existiera, para no revelar otros tenants.
+    if (!rows.length || !puedeVer(req.sesion, rows[0].id)) return res.status(404).json({ error: 'Tenant no encontrado' });
     res.json(rows[0]);
   })
 );
@@ -95,6 +117,7 @@ app.get(
 // Crear tenant (RF-07): guarda la ficha y encola la operacion 'crear'.
 app.post(
   '/tenants',
+  soloPlataforma,
   ruta(async (req, res) => {
     const b = req.body || {};
     const faltan = ['id', 'nombre', 'contacto', 'plan', 'entorno', 'motor'].filter((campo) => !b[campo]);
@@ -120,9 +143,33 @@ app.post(
   })
 );
 
+// Vista previa de la eliminacion (RF-18): que recursos y datos se borraran.
+app.get(
+  '/tenants/:id/eliminar/preview',
+  soloPlataforma,
+  ruta(async (req, res) => {
+    const { rows } = await pool.query('SELECT * FROM tenants WHERE id = $1', [req.params.id]);
+    if (!rows.length) return res.status(404).json({ error: 'Tenant no encontrado' });
+    const t = rows[0];
+    const recursos = [];
+    if (t.instance_id) recursos.push(`Servidor EC2 ${t.instance_id}`);
+    recursos.push(`Firewall (security group) tenant-${t.id}`);
+    if (t.public_ip) recursos.push(`IP publica ${t.public_ip}`);
+    recursos.push(`Estado de ${t.motor} del tenant`);
+    res.json({
+      tenant_id: t.id,
+      estado: t.estado,
+      motor: t.motor,
+      recursos,
+      datos: ['Base de datos MySQL del tenant (usuarios, cursos y asistencia)'],
+    });
+  })
+);
+
 // Eliminar tenant (RF-18): exige escribir el id del tenant para confirmar.
 app.post(
   '/tenants/:id/eliminar',
+  soloPlataforma,
   ruta(async (req, res) => {
     const id = req.params.id;
     const { rows } = await pool.query('SELECT estado FROM tenants WHERE id = $1', [id]);
@@ -151,7 +198,7 @@ function rutaEnergia(accion, estadoRequerido) {
     ruta(async (req, res) => {
       const id = req.params.id;
       const { rows } = await pool.query('SELECT estado FROM tenants WHERE id = $1', [id]);
-      if (!rows.length) return res.status(404).json({ error: 'Tenant no encontrado' });
+      if (!rows.length || !puedeVer(req.sesion, id)) return res.status(404).json({ error: 'Tenant no encontrado' });
       if (rows[0].estado !== estadoRequerido) {
         return res.status(409).json({ error: `Solo se puede ${accion} un tenant en estado ${estadoRequerido} (estado actual: ${rows[0].estado})` });
       }
@@ -171,7 +218,9 @@ app.get(
   '/operaciones/:id',
   ruta(async (req, res) => {
     const { rows } = await pool.query('SELECT * FROM operations WHERE id = $1', [req.params.id]);
-    if (!rows.length) return res.status(404).json({ error: 'Operacion no encontrada' });
+    if (!rows.length || !puedeVer(req.sesion, rows[0].tenant_id)) {
+      return res.status(404).json({ error: 'Operacion no encontrada' });
+    }
     res.json(rows[0]);
   })
 );
@@ -179,8 +228,9 @@ app.get(
 app.get(
   '/operaciones',
   ruta(async (req, res) => {
-    const { rows } = req.query.tenant
-      ? await pool.query('SELECT * FROM operations WHERE tenant_id = $1 ORDER BY id DESC', [req.query.tenant])
+    const tenant = req.sesion.rol === 'admin_tenant' ? req.sesion.tenant_id : req.query.tenant;
+    const { rows } = tenant
+      ? await pool.query('SELECT * FROM operations WHERE tenant_id = $1 ORDER BY id DESC', [tenant])
       : await pool.query('SELECT * FROM operations ORDER BY id DESC LIMIT 50');
     res.json(rows);
   })
@@ -190,6 +240,10 @@ app.get(
 app.post(
   '/operaciones/:id/reintentar',
   ruta(async (req, res) => {
+    const op = await pool.query('SELECT tenant_id FROM operations WHERE id = $1', [req.params.id]);
+    if (!op.rows.length || !puedeVer(req.sesion, op.rows[0].tenant_id)) {
+      return res.status(404).json({ error: 'Operacion no encontrada' });
+    }
     const { rows } = await pool.query(
       `UPDATE operations SET estado = 'pendiente', log = log || E'\\n--- reintento ---\\n'
        WHERE id = $1 AND estado = 'fallida' RETURNING *`,
@@ -208,8 +262,9 @@ app.get(
   ruta(async (req, res) => {
     const filtros = [];
     const valores = [];
-    if (req.query.tenant) {
-      valores.push(req.query.tenant);
+    const tenant = req.sesion.rol === 'admin_tenant' ? req.sesion.tenant_id : req.query.tenant;
+    if (tenant) {
+      valores.push(tenant);
       filtros.push(`tenant_id = $${valores.length}`);
     }
     if (req.query.estado) {
@@ -283,6 +338,7 @@ app.post(
 const { sincronizarTargets } = require('./sync-targets');
 app.post(
   '/monitoreo/sync-targets',
+  soloPlataforma,
   ruta(async (req, res) => {
     const targets = await sincronizarTargets();
     res.json({ ok: true, total_grupos: targets.length });

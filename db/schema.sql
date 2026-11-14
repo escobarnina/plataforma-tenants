@@ -66,6 +66,17 @@ CREATE TABLE IF NOT EXISTS deployments (
   creado_en         TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
+-- Usuarios de la consola. La clave se guarda cifrada con scrypt (nunca en texto plano).
+-- admin_plataforma ve todo; admin_tenant solo su propio tenant.
+CREATE TABLE IF NOT EXISTS users (
+  usuario    TEXT PRIMARY KEY,
+  clave_hash TEXT NOT NULL,
+  rol        TEXT NOT NULL CHECK (rol IN ('admin_plataforma', 'admin_tenant')),
+  tenant_id  TEXT REFERENCES tenants (id),
+  creado_en  TIMESTAMPTZ NOT NULL DEFAULT now(),
+  CHECK ((rol = 'admin_tenant') = (tenant_id IS NOT NULL))
+);
+
 -- Alertas que envia Grafana por webhook (RF-28 y RF-29).
 CREATE TABLE IF NOT EXISTS alerts (
   id           BIGSERIAL PRIMARY KEY,
