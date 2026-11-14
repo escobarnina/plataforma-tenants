@@ -15,8 +15,13 @@ Cada institucion (tenant) tiene su propia VM en AWS. La plantilla `infra/tofu/te
 Estas reglas las comprueba `tests/isolation/run_isolation_tests.sh`. Si alguien cambia la plantilla y rompe una, el CI falla.
 
 ## Secretos
-- Las claves van en archivos `.env` (excluidos por `.gitignore`) o en SSM. Nunca en el codigo.
-- El estado de OpenTofu (`.tfstate`) se guarda en S3, no en Git.
+- Las claves de la plataforma van en archivos `.env` (excluidos por `.gitignore`). Nunca en el codigo.
+- Las claves de los usuarios de la consola se guardan cifradas con scrypt (tabla `users`).
+- El estado de OpenTofu (`.tfstate`) se guarda por tenant en `api/workdir/<tenant_id>`, fuera de Git.
+
+**Pendiente:**
+- Mover el estado de OpenTofu a un bucket S3 cifrado y con bloqueo. Hoy, si se pierde `api/workdir`, se pierde el control de las VM ya creadas.
+- Guardar la clave inicial del admin de cada tenant en SSM Parameter Store. Hoy viaja en el `user_data` de la VM.
 - Trivy y la prueba de aislamiento revisan que no se suban secretos.
 
 ## CI de seguridad
