@@ -51,13 +51,22 @@ Necesitas Node 20 o mas y PostgreSQL 16.
 
 ## Rutas de la API
 
+Todas las rutas piden el encabezado `Authorization: Bearer <token>`, salvo `GET /`, `GET /health`, `POST /login` y `POST /alertas/webhook`.
+Un `admin_tenant` solo ve y opera su propio tenant; crear, eliminar y la vista previa son solo para `admin_plataforma`.
+
+Crear usuarios (la clave se guarda cifrada): `node crear-usuario.js <usuario> <clave> admin_plataforma` o `node crear-usuario.js <usuario> <clave> admin_tenant <tenant_id>`.
+
 | Metodo y ruta | Para que sirve |
 | --- | --- |
+| `POST /login` | Iniciar sesion con `{ "usuario", "clave" }`; devuelve `{ token, rol, tenant_id }` |
 | `GET /planes` | Catalogo de planes |
 | `GET /tenants` | Lista con filtros opcionales: `nombre`, `estado`, `plan`, `entorno` |
 | `GET /tenants/:id` | Un tenant |
 | `POST /tenants` | Crear un tenant (responde 202 y encola la operacion `crear`) |
+| `GET /tenants/:id/eliminar/preview` | Que recursos y datos se borraran al eliminar (RF-18) |
 | `POST /tenants/:id/eliminar` | Eliminar; exige `{ "confirmar": "<id del tenant>" }` |
+| `POST /tenants/:id/suspender` y `/reanudar` | Apagar o encender la VM sin borrar datos (RF-16, RF-17) |
+| `GET /alertas` | Alertas recientes, con filtros `tenant` y `estado` (RF-29) |
 | `GET /operaciones` | Ultimas operaciones, o `?tenant=<id>` |
 | `GET /operaciones/:id` | Estado, log y error de una operacion |
 | `POST /operaciones/:id/reintentar` | Reintentar una operacion fallida |
