@@ -3,7 +3,7 @@
 import * as mock from './mock.js';
 
 const USAR_MOCK = import.meta.env.VITE_USE_MOCK !== 'false';
-const BASE = import.meta.env.VITE_API_URL || 'http://localhost:4000';
+const BASE = import.meta.env.VITE_API_URL !== undefined ? import.meta.env.VITE_API_URL : '/api';
 
 export function sesion() {
   try {
@@ -55,7 +55,7 @@ const real = {
   operaciones: (tenant) => pedir('GET', `/operaciones${qs({ tenant })}`),
   operacion: (id) => pedir('GET', `/operaciones/${id}`),
   reintentar: (id) => pedir('POST', `/operaciones/${id}/reintentar`),
-  alertas: mock.alertas, // (filtros) => pedir('GET', `/alertas${qs(filtros)}`),
+  alertas: (filtros) => pedir('GET', `/alertas${qs(filtros)}`),
 };
 
 export const api = USAR_MOCK ? mock : real;

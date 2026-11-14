@@ -1,6 +1,8 @@
 [
   {
-    "targets": ["host.docker.internal:9100"],
+    "targets": [
+      "54.210.10.15:9100"
+    ],
     "labels": {
       "job": "node",
       "tenant_id": "san-marcos",
@@ -10,7 +12,9 @@
     }
   },
   {
-    "targets": ["host.docker.internal:3002"],
+    "targets": [
+      "54.210.10.15:3000"
+    ],
     "labels": {
       "job": "app",
       "tenant_id": "san-marcos",
@@ -19,7 +23,9 @@
     }
   },
   {
-    "targets": ["host.docker.internal:9104"],
+    "targets": [
+      "54.210.10.15:9104"
+    ],
     "labels": {
       "job": "mysql",
       "tenant_id": "san-marcos",
@@ -28,7 +34,9 @@
     }
   },
   {
-    "targets": ["host.docker.internal:9101"],
+    "targets": [
+      "34.200.45.89:9100"
+    ],
     "labels": {
       "job": "node",
       "tenant_id": "norte",
@@ -38,7 +46,9 @@
     }
   },
   {
-    "targets": ["host.docker.internal:3001"],
+    "targets": [
+      "34.200.45.89:3000"
+    ],
     "labels": {
       "job": "app",
       "tenant_id": "norte",
@@ -47,12 +57,48 @@
     }
   },
   {
-    "targets": ["host.docker.internal:9105"],
+    "targets": [
+      "34.200.45.89:9104"
+    ],
     "labels": {
       "job": "mysql",
       "tenant_id": "norte",
       "entorno": "desarrollo",
       "plan": "basico"
+    }
+  },
+  {
+    "targets": [
+      "10.0.0.1:9100"
+    ],
+    "labels": {
+      "job": "node",
+      "tenant_id": "andes",
+      "entorno": "produccion",
+      "plan": "avanzado",
+      "instance_type": "c7i-flex.large"
+    }
+  },
+  {
+    "targets": [
+      "10.0.0.1:3000"
+    ],
+    "labels": {
+      "job": "app",
+      "tenant_id": "andes",
+      "entorno": "produccion",
+      "plan": "avanzado"
+    }
+  },
+  {
+    "targets": [
+      "10.0.0.1:9104"
+    ],
+    "labels": {
+      "job": "mysql",
+      "tenant_id": "andes",
+      "entorno": "produccion",
+      "plan": "avanzado"
     }
   }
 ]
