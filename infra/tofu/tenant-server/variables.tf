@@ -38,6 +38,17 @@ variable "ssh_cidr" {
   default     = ""
 }
 
+variable "monitoring_cidr" {
+  description = "IP de Prometheus en formato CIDR (ej. 3.80.10.20/32). Abre 9100, 9104 y 3000 solo a esa IP. Vacio = cerrados."
+  type        = string
+  default     = ""
+
+  validation {
+    condition     = var.monitoring_cidr == "" || (can(cidrhost(var.monitoring_cidr, 0)) && var.monitoring_cidr != "0.0.0.0/0")
+    error_message = "monitoring_cidr debe ser un rango valido (ej. 3.80.10.20/32) y nunca 0.0.0.0/0."
+  }
+}
+
 variable "admin_password" {
   description = "Clave inicial del administrador de la app. Vacio = la VM genera una y la guarda en /etc/tenant/credenciales."
   type        = string

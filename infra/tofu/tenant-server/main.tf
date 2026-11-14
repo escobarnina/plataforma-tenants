@@ -50,6 +50,22 @@ resource "aws_security_group" "tenant" {
     }
   }
 
+  # Metricas para Prometheus: solo desde su IP (monitoring_cidr). Vacio = puertos cerrados.
+  dynamic "ingress" {
+    for_each = var.monitoring_cidr == "" ? {} : {
+      9100 = "Metricas del servidor (node_exporter)"
+      9104 = "Metricas de MySQL (mysqld_exporter)"
+      3000 = "Metricas de la app (contador)"
+    }
+    content {
+      description = ingress.value
+      from_port   = tonumber(ingress.key)
+      to_port     = tonumber(ingress.key)
+      protocol    = "tcp"
+      cidr_blocks = [var.monitoring_cidr]
+    }
+  }
+
   egress {
     description = "Salida a internet (paquetes y actualizaciones)"
     from_port   = 0

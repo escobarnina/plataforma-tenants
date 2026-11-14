@@ -92,6 +92,33 @@ GRANT ALL PRIVILEGES ON asistencia.* TO 'asistencia'@'127.0.0.1';
 FLUSH PRIVILEGES;
 SQL
 
+# --- Sensor de MySQL (mysqld_exporter, puerto 9104): usuario propio que solo lee estadisticas ---
+# No tiene permiso sobre la base "asistencia": no puede ver datos de estudiantes.
+if systemctl list-unit-files prometheus-mysqld-exporter.service >/dev/null 2>&1; then
+  EXPORTER_PASSWORD="$(openssl rand -base64 24 | tr -dc 'A-Za-z0-9' | head -c 24)"
+  mysql <<SQL
+CREATE USER IF NOT EXISTS 'exporter'@'localhost' IDENTIFIED BY '${EXPORTER_PASSWORD}' WITH MAX_USER_CONNECTIONS 3;
+ALTER USER 'exporter'@'localhost' IDENTIFIED BY '${EXPORTER_PASSWORD}';
+GRANT PROCESS, REPLICATION CLIENT ON *.* TO 'exporter'@'localhost';
+GRANT SELECT ON performance_schema.* TO 'exporter'@'localhost';
+FLUSH PRIVILEGES;
+SQL
+  install -d -m 0755 /etc/prometheus
+  cat > /etc/prometheus/mysqld-exporter.cnf <<CNF
+[client]
+user=exporter
+password=${EXPORTER_PASSWORD}
+host=127.0.0.1
+port=3306
+CNF
+  chown root:prometheus /etc/prometheus/mysqld-exporter.cnf
+  chmod 640 /etc/prometheus/mysqld-exporter.cnf
+  echo 'ARGS="--config.my-cnf=/etc/prometheus/mysqld-exporter.cnf"' > /etc/default/prometheus-mysqld-exporter
+  # Si el sensor falla, la app sigue: solo se pierden las metricas de MySQL.
+  systemctl enable --now prometheus-mysqld-exporter || echo "Aviso: el sensor de MySQL no arranco"
+  unset EXPORTER_PASSWORD
+fi
+
 # --- .env de la app (en la raiz del repo, donde lo busca el backend) ---
 cat > "$APP/.env" <<ENVAPP
 NODE_ENV=production

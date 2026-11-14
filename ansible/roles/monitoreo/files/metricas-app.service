@@ -1,0 +1,16 @@
+[Unit]
+Description=Contador de metricas de Mi-asistencia (proxy nginx -> backend)
+After=network.target
+
+[Service]
+ExecStart=/usr/bin/node /opt/tenant/metricas-app.js
+Restart=always
+RestartSec=2
+# Usuario temporal sin privilegios y sistema de archivos de solo lectura.
+DynamicUser=yes
+ProtectSystem=strict
+ProtectHome=yes
+NoNewPrivileges=yes
+
+[Install]
+WantedBy=multi-user.target

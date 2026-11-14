@@ -70,6 +70,10 @@ flowchart LR
 
 **Roles:** `admin_plataforma` ve y administra todos los tenants. `admin_tenant` solo ve y opera su propia institucion.
 
+**Docker:** las VM de los tenants no usan Docker (Packer + Ansible). La VM de observabilidad si usa Docker Compose para levantar Prometheus, Grafana y Alertmanager juntos: es una unica VM de herramientas y asi se reutiliza la configuracion ya probada.
+
+**Metricas de cada tenant:** `node_exporter` (9100), `mysqld_exporter` (9104) y un contador de la app (3000, entre nginx y el backend). El firewall solo abre esos puertos a la IP de Prometheus (`MONITORING_CIDR`).
+
 ## 3. Flujo: crear un tenant
 
 ```mermaid
@@ -121,7 +125,7 @@ flowchart LR
 
 | Pendiente | Que falta | Integrantes |
 |---|---|---|
-| Metricas de las VM | Instalar node_exporter, mysqld_exporter y las metricas de la app en la AMI, y abrir esos puertos solo a Prometheus | 3, 4 y 5 |
+| Metricas de las VM | El codigo ya esta (rol `monitoreo` y `MONITORING_CIDR`). Falta construir la AMI nueva con Packer y probarlo con Prometheus en AWS | 3, 4 y 5 |
 | Grafana en AWS | Desplegar la VM de observabilidad y conectar su URL a la consola (`VITE_GRAFANA_URL`) | 5 |
 | Webhook de alertas | Alertmanager envia a `host.docker.internal:4000`, que solo funciona en la misma PC. Con Grafana en AWS debe apuntar a una direccion alcanzable de la API | 1 y 5 |
 | State en S3 | Hoy esta en `api/workdir/<tenant_id>`. Moverlo a un bucket S3 cifrado y con bloqueo | 1 y 4 |
