@@ -3,7 +3,7 @@
 import * as mock from './mock.js';
 
 const USAR_MOCK = import.meta.env.VITE_USE_MOCK !== 'false';
-const BASE = import.meta.env.VITE_API_URL || 'http://localhost:4000';
+const BASE = import.meta.env.VITE_API_URL !== undefined ? import.meta.env.VITE_API_URL : '/api';
 
 export function sesion() {
   try {

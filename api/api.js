@@ -43,6 +43,14 @@ async function enTransaccion(fn) {
   }
 }
 
+app.get('/', (req, res) => {
+  res.json({
+    nombre: 'API Plataforma Multi-Tenant',
+    estado: 'en_linea',
+    rutas_principales: ['/health', '/planes', '/tenants', '/operaciones', '/alertas']
+  });
+});
+
 app.get('/health', (req, res) => res.json({ ok: true }));
 
 // Catalogo de planes (RF-01, RF-02, RF-03)
