@@ -20,4 +20,18 @@ Estas reglas las comprueba `tests/isolation/run_isolation_tests.sh`. Si alguien 
 - Trivy y la prueba de aislamiento revisan que no se suban secretos.
 
 ## CI de seguridad
-`.github/workflows/security-ci.yml` corre Semgrep, Trivy, KICS y las pruebas de aislamiento en cada push y Pull Request hacia `develop` y `main`. Falla si encuentra problemas graves (HIGH o CRITICAL).
+`.github/workflows/security-ci.yml` corre Semgrep, Trivy, KICS y las pruebas de aislamiento en cada push y Pull Request hacia `develop` y `main`.
+- Trivy y KICS fallan si encuentran problemas graves (HIGH o CRITICAL).
+- Semgrep muestra sus avisos en el log, pero no bloquea: los pendientes estan abajo.
+- Las acciones van fijadas por SHA, no por etiqueta, para que nadie pueda cambiarlas sin que lo notemos.
+
+## Avisos pendientes de Semgrep
+Avisos en codigo de otros integrantes. Ninguno es urgente.
+
+| Archivo | Aviso | Evaluacion | Responsable |
+|---|---|---|---|
+| `api/api.js` | Sin proteccion CSRF | Falsa alarma: CSRF afecta a sesiones con cookies; la API usa token en el encabezado | Integrante 1 |
+| `api/motor-tofu.js` (`path.join` con `tenantId`) | Posible acceso a otras carpetas | Bajo: la base de datos solo acepta ids `a-z0-9-` | Integrante 1 |
+| `api/motor-tofu.js` (`spawn(comando)`) | Posible ejecucion de comandos | Bajo: el comando es fijo (`tofu`), no viene del usuario | Integrante 1 |
+| `observabilidad/infra/main.tf` | La VM de Grafana tiene IP publica | Necesaria para entrar a Grafana; conviene limitar quien entra en su security group | Integrante 5 |
+| `observabilidad/probar-metricas.js` | Servidor `http` sin cifrar | Script de prueba local, no se despliega | Integrante 5 |

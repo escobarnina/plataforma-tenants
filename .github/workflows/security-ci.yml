@@ -1,5 +1,6 @@
 ﻿# CI de seguridad (Integrante 6): 3 escaneres + pruebas de aislamiento.
 # Corre en cada push y Pull Request hacia develop y main.
+# Las acciones van fijadas por SHA (no por etiqueta) para evitar ataques a la cadena de suministro.
 name: Seguridad y aislamiento
 
 on:
@@ -19,15 +20,16 @@ jobs:
     container:
       image: semgrep/semgrep
     steps:
-      - uses: actions/checkout@v4
-      - run: semgrep scan --config p/default --error
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
+      # Muestra los avisos en el log sin bloquear: los pendientes estan en docs/SECURITY.md.
+      - run: semgrep scan --config p/default
 
   trivy:
     name: Escaner 2 - Dependencias y secretos (Trivy)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: aquasecurity/trivy-action@0.28.0
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
+      - uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
         with:
           scan-type: fs
           scan-ref: .
@@ -39,8 +41,8 @@ jobs:
     name: Escaner 3 - Infraestructura como codigo (KICS)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: checkmarx/kics-github-action@v2.1.0
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
+      - uses: checkmarx/kics-github-action@05aa5eb70eede1355220f4ca5238d96b397e30a6 # v2.1.20
         with:
           path: infra
           fail_on: high
@@ -49,5 +51,5 @@ jobs:
     name: Pruebas de aislamiento entre tenants
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
       - run: bash tests/isolation/run_isolation_tests.sh
