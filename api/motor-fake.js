@@ -37,4 +37,17 @@ async function destroy(tenant, onLog = () => {}) {
   onLog('[fake] recursos eliminados');
 }
 
-module.exports = { apply, destroy };
+async function suspender(tenant, onLog = () => {}) {
+  onLog(`[fake] apagando VM de ${tenant.tenant_id}...`);
+  await sleep(1500);
+  onLog('[fake] VM detenida');
+}
+
+async function reanudar(tenant, onLog = () => {}) {
+  onLog(`[fake] encendiendo VM de ${tenant.tenant_id}...`);
+  await sleep(2000);
+  onLog('[fake] VM en marcha');
+  return { public_ip: '10.0.0.1', url: 'http://10.0.0.1' };
+}
+
+module.exports = { apply, destroy, suspender, reanudar };

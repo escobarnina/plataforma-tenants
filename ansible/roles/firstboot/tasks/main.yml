@@ -1,0 +1,39 @@
+---
+# Instala el script del primer arranque. NO lo ejecuta: se ejecuta en cada VM nueva,
+# cuando cloud-init ya escribio /etc/tenant/tenant.env.
+- name: Carpeta de la herramienta
+  ansible.builtin.file:
+    path: /opt/tenant
+    state: directory
+    mode: "0755"
+
+- name: Script que crea el administrador
+  ansible.builtin.copy:
+    src: crear-admin.js
+    dest: /opt/tenant/crear-admin.js
+    mode: "0644"
+
+- name: Script de configuracion del primer arranque
+  ansible.builtin.copy:
+    src: tenant-configure
+    dest: /usr/local/sbin/tenant-configure
+    owner: root
+    group: root
+    mode: "0750"
+
+- name: Servicio del primer arranque
+  ansible.builtin.copy:
+    src: tenant-configure.service
+    dest: /etc/systemd/system/tenant-configure.service
+    mode: "0644"
+
+- name: Habilitar el servicio (sin iniciarlo durante el build)
+  ansible.builtin.systemd:
+    name: tenant-configure
+    enabled: true
+    daemon_reload: true
+
+- name: Apagar MySQL antes de guardar la imagen (la imagen no debe llevar datos de esta VM)
+  ansible.builtin.service:
+    name: mysql
+    state: stopped

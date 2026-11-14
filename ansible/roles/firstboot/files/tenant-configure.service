@@ -1,0 +1,18 @@
+[Unit]
+Description=Configuracion del tenant en el primer arranque
+# cloud-init escribe /etc/tenant/tenant.env en su etapa final (cloud-final.service).
+# cloud-final corre DESPUES de multi-user.target, asi que esta unidad NO puede colgar de
+# multi-user.target (ciclo de dependencias): cuelga de cloud-final y arranca cuando termina.
+After=cloud-final.service mysql.service network-online.target
+Wants=mysql.service network-online.target
+ConditionPathExists=/etc/tenant/tenant.env
+ConditionPathExists=!/var/lib/tenant/configurado
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/sbin/tenant-configure
+RemainAfterExit=yes
+TimeoutStartSec=900
+
+[Install]
+WantedBy=cloud-final.service

@@ -1,0 +1,28 @@
+global:
+  scrape_interval: 10s
+  evaluation_interval: 10s
+
+# Alertmanager para recepcion y reenvio de alertas
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets:
+            - 'alertmanager:9093'
+
+# Reglas de alerta operativas (RF-28)
+rule_files:
+  - 'alert.rules.yml'
+
+scrape_configs:
+  # Monitoreo de Prometheus mismo
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+
+  # Descubrimiento dinamico de tenants por file_sd (RF-25 a RF-27)
+  # La plataforma escribe en targets/tenants.json los endpoints de cada tenant activo.
+  - job_name: 'tenants_file_sd'
+    file_sd_configs:
+      - files:
+          - '/etc/prometheus/targets/*.json'
+        refresh_interval: 5s
