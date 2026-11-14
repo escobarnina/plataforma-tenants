@@ -1,17 +1,35 @@
 // Worker: toma operaciones 'pendiente' de la tabla operations y las ejecuta una por una.
-// Usa el motor elegido en .env (ENGINE=fake o tofu).
+// ENGINE=fake  -> todo simulado, no toca AWS.
+// ENGINE=tofu  -> crea VMs reales; usa el motor que eligio cada tenant (campo motor):
+//                 opentofu, pulumi o cloudformation. ("real" es un nombre equivalente a "tofu".)
 
 require('dotenv').config();
 const pool = require('./db');
 
 const nombreMotor = process.env.ENGINE || 'fake';
-if (!['fake', 'tofu'].includes(nombreMotor)) {
+if (!['fake', 'tofu', 'real'].includes(nombreMotor)) {
   console.error(`ENGINE invalido: ${nombreMotor}. Usa fake o tofu.`);
   process.exit(1);
 }
-const motor = require(`./motor-${nombreMotor}`);
-// Suspender/reanudar: el motor falso lo simula; con tofu se usa el AWS CLI (ec2-energia.js).
-const energia = nombreMotor === 'fake' ? motor : require('./ec2-energia');
+const simulado = nombreMotor === 'fake';
+
+const ARCHIVO_MOTOR = { opentofu: 'tofu', pulumi: 'pulumi', cloudformation: 'cloudformation' };
+
+// Motor que crea y borra la infraestructura de este tenant.
+function motorDe(tenant) {
+  if (simulado) return require('./motor-fake');
+  const archivo = ARCHIVO_MOTOR[tenant.motor];
+  if (!archivo) throw new Error(`Motor desconocido: ${tenant.motor}`);
+  try {
+    return require(`./motor-${archivo}`);
+  } catch (error) {
+    if (error.code === 'MODULE_NOT_FOUND') throw new Error(`El motor ${tenant.motor} aun no esta instalado en la API`);
+    throw error;
+  }
+}
+
+// Suspender/reanudar: el motor falso lo simula; con AWS real se usa el AWS CLI (ec2-energia.js).
+const energia = simulado ? require('./motor-fake') : require('./ec2-energia');
 const { sincronizarTargets } = require('./sync-targets');
 
 // Toma UNA operacion pendiente. SKIP LOCKED evita que dos workers tomen la misma.
@@ -47,7 +65,7 @@ async function procesar(operacion) {
   try {
     if (operacion.tipo === 'crear') {
       await pool.query(`UPDATE tenants SET estado = 'aprovisionando', actualizado_en = now() WHERE id = $1`, [tenant.id]);
-      const salida = await motor.apply(entrada, onLog);
+      const salida = await motorDe(tenant).apply(entrada, onLog);
       await cola;
       await pool.query(
         `UPDATE tenants SET estado = 'activo', instance_id = $2, public_ip = $3, url = $4, actualizado_en = now()
@@ -60,7 +78,7 @@ async function procesar(operacion) {
         [tenant.id, operacion.id, salida.versiones.app, salida.versiones.plantilla, tenant.motor, salida.versiones.motor]
       );
     } else if (operacion.tipo === 'eliminar') {
-      await motor.destroy(entrada, onLog);
+      await motorDe(tenant).destroy(entrada, onLog);
       await cola;
       await pool.query(
         `UPDATE tenants SET estado = 'eliminado', instance_id = NULL, public_ip = NULL, url = NULL,
