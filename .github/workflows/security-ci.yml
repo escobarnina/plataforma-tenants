@@ -46,6 +46,12 @@ jobs:
         with:
           path: infra
           fail_on: high
+          # Reglas excluidas: todas marcan el puerto 80 abierto a internet, que es intencional
+          # (la web de cada institucion debe ser publica). SSH y MySQL los vigila tests/isolation.
+          #   4728cd65... / 4a1e6b34... Unrestricted Security Group Ingress (OpenTofu / CloudFormation)
+          #   381c3f2a... Sensitive Port Is Exposed To Entire Network
+          #   0104165b... DB Security Group Open To Large Scope (falsa alarma: no es una base de datos)
+          exclude_queries: 4728cd65-a20c-49da-8b31-9c08b423e4db,4a1e6b34-1008-4e61-a5f2-1f7c276f8d14,381c3f2a-ef6f-4eff-99f7-b169cda3422c,0104165b-02d5-426f-abc9-91fb48189899
 
   aislamiento:
     name: Pruebas de aislamiento entre tenants

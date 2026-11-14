@@ -25,6 +25,11 @@ Estas reglas las comprueba `tests/isolation/run_isolation_tests.sh`. Si alguien 
 - Semgrep muestra sus avisos en el log, pero no bloquea: los pendientes estan abajo.
 - Las acciones van fijadas por SHA, no por etiqueta, para que nadie pueda cambiarlas sin que lo notemos.
 
+## Reglas de KICS excluidas
+KICS marca como grave (HIGH) que el puerto 80 este abierto a internet. Es intencional: la aplicacion de cada institucion debe ser accesible para sus estudiantes y docentes. Se excluyen 4 reglas que solo marcan eso (ver comentario en el CI). SSH (22) y MySQL (3306) siguen vigilados por `tests/isolation/run_isolation_tests.sh`.
+
+KICS tambien da avisos MEDIUM que no bloquean: monitoreo detallado de EC2, IP publica de la VM y falta de rol IAM en la instancia.
+
 ## Avisos pendientes de Semgrep
 Avisos en codigo de otros integrantes. Ninguno es urgente.
 
