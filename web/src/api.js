@@ -33,8 +33,7 @@ const qs = (filtros = {}) => {
   return p.toString() ? `?${p}` : '';
 };
 
-// TEMPORAL: login, previewEliminar y alertas usan el mock porque la API real
-// aun no tiene esas rutas. Cuando el Integrante 1 las agregue, usar las lineas comentadas.
+// TEMPORAL: login y previewEliminar no usan la API real porque aun no tiene esas rutas. Cuando el Integrante 1 las agregue, usar las lineas comentadas.
 const real = {
   login: mock.login, // (usuario, clave) => pedir('POST', '/login', { usuario, clave }),
   planes: () => pedir('GET', '/planes'),
@@ -55,7 +54,7 @@ const real = {
   operaciones: (tenant) => pedir('GET', `/operaciones${qs({ tenant })}`),
   operacion: (id) => pedir('GET', `/operaciones/${id}`),
   reintentar: (id) => pedir('POST', `/operaciones/${id}/reintentar`),
-  alertas: mock.alertas, // (filtros) => pedir('GET', `/alertas${qs(filtros)}`),
+  alertas: (filtros) => pedir('GET', `/alertas${qs(filtros)}`),
 };
 
 export const api = USAR_MOCK ? mock : real;
