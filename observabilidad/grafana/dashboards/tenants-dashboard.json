@@ -278,7 +278,7 @@
       "targets": [
         {
           "datasource": { "type": "prometheus", "uid": "Prometheus" },
-          "expr": "(sum by (tenant_id) (rate(http_requests_total{status=~\"5..\", tenant_id=~\"$tenant\", entorno=~\"$entorno\"}[2m])) / sum by (tenant_id) (rate(http_requests_total{tenant_id=~\"$tenant\", entorno=~\"$entorno\"}[2m]))) * 100",
+          "expr": "((sum by (tenant_id) (rate(http_requests_total{status=~\"5..\", tenant_id=~\"$tenant\", entorno=~\"$entorno\"}[2m])) or (sum by (tenant_id) (rate(http_requests_total{tenant_id=~\"$tenant\", entorno=~\"$entorno\"}[2m])) * 0)) / clamp_min(sum by (tenant_id) (rate(http_requests_total{tenant_id=~\"$tenant\", entorno=~\"$entorno\"}[2m])), 0.0001)) * 100",
           "legendFormat": "{{tenant_id}} - 5xx %",
           "refId": "A"
         }
@@ -497,7 +497,7 @@
       "targets": [
         {
           "datasource": { "type": "prometheus", "uid": "Prometheus" },
-          "expr": "mysql_global_status_innodb_page_size{tenant_id=~\"$tenant\", entorno=~\"$entorno\"} * mysql_global_status_buffer_pool_pages_data{tenant_id=~\"$tenant\", entorno=~\"$entorno\"}",
+          "expr": "mysql_global_status_innodb_buffer_pool_bytes_data{tenant_id=~\"$tenant\", entorno=~\"$entorno\"} or (mysql_global_status_innodb_page_size{tenant_id=~\"$tenant\", entorno=~\"$entorno\"} * mysql_global_status_buffer_pool_pages_data{tenant_id=~\"$tenant\", entorno=~\"$entorno\"})",
           "legendFormat": "{{tenant_id}} Datos BD",
           "refId": "A"
         }
