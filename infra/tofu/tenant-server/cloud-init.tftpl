@@ -1,0 +1,21 @@
+#!/bin/bash
+# Primer arranque de la VM del tenant ${tenant_id}.
+# Con la AMI de Packer (Integrante 3), tenant-configure usa estos datos para dejar la app lista.
+# Sin AMI (Ubuntu estandar), instala nginx y deja una pagina de prueba.
+set -e
+
+mkdir -p /etc/tenant
+cat > /etc/tenant/tenant.env <<ENV
+TENANT_ID=${tenant_id}
+DB_VOLUME_GB=${db_volume_gb}
+ADMIN_PASSWORD=${admin_password}
+SEED_DATA=${seed_data}
+ENV
+chmod 600 /etc/tenant/tenant.env
+
+if ! command -v nginx >/dev/null 2>&1; then
+  apt-get update -y
+  apt-get install -y nginx
+fi
+echo "Tenant ${tenant_id} funcionando" > /var/www/html/index.html
+systemctl enable --now nginx

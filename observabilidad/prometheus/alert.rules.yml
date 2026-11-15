@@ -1,0 +1,72 @@
+groups:
+  - name: alertas_tenants
+    rules:
+      # RF-28: Servicio sin respuesta por 2 minutos
+      - alert: TenantDown
+        expr: up{job="app"} == 0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "El tenant {{ $labels.tenant_id }} no responde"
+          description: "La aplicacion del tenant {{ $labels.tenant_id }} en entorno {{ $labels.entorno }} lleva mas de 2 minutos sin responder."
+
+      # RF-28: Alerta inmediata de instancia o node_exporter caido
+      - alert: HostUnreachable
+        expr: up{job="node"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Servidor inalcanzable para tenant {{ $labels.tenant_id }}"
+          description: "No se reciben metricas del sistema operativo del tenant {{ $labels.tenant_id }}."
+
+      # RF-28: Estado de la base de datos caida
+      - alert: MySQLDown
+        expr: mysql_up == 0 or up{job="mysql"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Base de datos MySQL caida en tenant {{ $labels.tenant_id }}"
+          description: "El servicio MySQL del tenant {{ $labels.tenant_id }} ha dejado de responder."
+
+      # RF-28 / Plan: CPU sobre 80 % por 5 minutos
+      - alert: HighCPUUsage
+        expr: 100 - (avg by (tenant_id, entorno) (rate(node_cpu_seconds_total{mode="idle"}[2m])) * 100) > 80
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Uso alto de CPU en tenant {{ $labels.tenant_id }}"
+          description: "El uso de CPU supera el 80 % durante mas de 5 minutos (valor actual: {{ $value | printf \"%.1f\" }}%)."
+
+      # RF-28 / Plan: Disco sobre 85 %
+      - alert: HighDiskUsage
+        expr: (1 - (node_filesystem_free_bytes{mountpoint="/"} / node_filesystem_size_bytes{mountpoint="/"})) * 100 > 85
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Espacio en disco critico en tenant {{ $labels.tenant_id }}"
+          description: "El disco principal tiene mas del 85 % ocupado (valor actual: {{ $value | printf \"%.1f\" }}%)."
+
+      # RF-28 / Plan: Tasa de errores 5xx sobre 5 %
+      - alert: HighErrorRate5xx
+        expr: (sum by (tenant_id, entorno) (rate(http_requests_total{status=~"5.."}[2m])) / sum by (tenant_id, entorno) (rate(http_requests_total[2m]))) * 100 > 5
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Tasa elevada de errores 5xx en tenant {{ $labels.tenant_id }}"
+          description: "La proporcion de errores 5xx supera el 5 % de las peticiones (valor actual: {{ $value | printf \"%.2f\" }}%)."
+
+      # Memoria alta (> 90%)
+      - alert: HighMemoryUsage
+        expr: (1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)) * 100 > 90
+        for: 3m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Memoria RAM alta en tenant {{ $labels.tenant_id }}"
+          description: "El uso de RAM supera el 90 % en el tenant {{ $labels.tenant_id }}."

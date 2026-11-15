@@ -1,0 +1,26 @@
+---
+# Solo se instala y se deja listo el servidor. La base, el usuario y la contrasena
+# NO se crean aqui: son propios de cada tenant y los crea tenant-configure en el primer arranque.
+- name: Instalar MySQL 8
+  ansible.builtin.apt:
+    name: mysql-server
+    state: present
+
+- name: Configuracion base de MySQL (utf8mb4, solo local)
+  ansible.builtin.copy:
+    dest: /etc/mysql/mysql.conf.d/zz-asistencia.cnf
+    owner: root
+    group: root
+    mode: "0644"
+    content: |
+      [mysqld]
+      character-set-server = utf8mb4
+      collation-server     = utf8mb4_unicode_ci
+      bind-address         = 127.0.0.1
+  notify: Reiniciar mysql
+
+- name: MySQL arranca con la VM
+  ansible.builtin.service:
+    name: mysql
+    state: started
+    enabled: true

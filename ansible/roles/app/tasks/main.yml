@@ -1,0 +1,129 @@
+---
+- name: Usuario de sistema de la app
+  ansible.builtin.user:
+    name: asistencia
+    system: true
+    create_home: true
+    shell: /bin/bash
+
+- name: Instalar nginx
+  ansible.builtin.apt:
+    name: nginx
+    state: present
+
+- name: Descargar el codigo de la app ({{ app_ref }})
+  ansible.builtin.git:
+    repo: "{{ app_repo }}"
+    dest: /opt/asistencia
+    version: "{{ app_ref }}"
+    force: true
+  register: app_codigo
+
+- name: Dueno del codigo
+  ansible.builtin.file:
+    path: /opt/asistencia
+    owner: asistencia
+    group: asistencia
+    recurse: true
+
+- name: Dependencias del backend (incluye sequelize-cli para las migraciones)
+  ansible.builtin.command: npm ci
+  args:
+    chdir: /opt/asistencia/backend
+  become: true
+  become_user: asistencia
+  environment:
+    HOME: /home/asistencia
+  changed_when: true
+
+- name: Dependencias del frontend
+  ansible.builtin.command: npm ci
+  args:
+    chdir: /opt/asistencia/frontend
+  become: true
+  become_user: asistencia
+  environment:
+    HOME: /home/asistencia
+  changed_when: true
+
+- name: Compilar el frontend (build de produccion)
+  ansible.builtin.command: npm run build
+  args:
+    chdir: /opt/asistencia/frontend
+  become: true
+  become_user: asistencia
+  environment:
+    HOME: /home/asistencia
+  changed_when: true
+
+- name: Carpeta publica del frontend
+  ansible.builtin.file:
+    path: /var/www/asistencia
+    state: directory
+    mode: "0755"
+
+- name: Publicar el build en /var/www/asistencia
+  ansible.builtin.shell: rm -rf /var/www/asistencia/* && cp -r /opt/asistencia/frontend/dist/* /var/www/asistencia/
+  changed_when: true
+
+- name: Quitar node_modules del frontend (ya compilado; ahorra disco)
+  ansible.builtin.file:
+    path: /opt/asistencia/frontend/node_modules
+    state: absent
+
+- name: Sitio de nginx (sirve la SPA y reenvia /api al backend local)
+  ansible.builtin.template:
+    src: nginx-asistencia.conf.j2
+    dest: /etc/nginx/sites-available/asistencia
+    mode: "0644"
+
+- name: Activar el sitio y quitar el de ejemplo
+  ansible.builtin.file:
+    src: /etc/nginx/sites-available/asistencia
+    dest: /etc/nginx/sites-enabled/asistencia
+    state: link
+
+- name: Quitar el sitio por defecto de nginx
+  ansible.builtin.file:
+    path: /etc/nginx/sites-enabled/default
+    state: absent
+
+- name: Validar la configuracion de nginx
+  ansible.builtin.command: nginx -t
+  changed_when: false
+
+- name: Nginx arranca con la VM
+  ansible.builtin.service:
+    name: nginx
+    state: restarted
+    enabled: true
+
+- name: Servicio systemd del backend
+  ansible.builtin.template:
+    src: asistencia-backend.service.j2
+    dest: /etc/systemd/system/asistencia-backend.service
+    mode: "0644"
+
+# El backend queda habilitado pero NO arranca solo hasta que exista /opt/asistencia/.env
+# (lo escribe tenant-configure). Ver ConditionPathExists en el servicio.
+- name: Habilitar el backend sin iniciarlo
+  ansible.builtin.systemd:
+    name: asistencia-backend
+    enabled: true
+    daemon_reload: true
+
+- name: Carpeta de configuracion del tenant
+  ansible.builtin.file:
+    path: /etc/tenant
+    state: directory
+    mode: "0755"
+
+- name: Guardar la version de la app en /etc/tenant/imagen.txt
+  ansible.builtin.copy:
+    dest: /etc/tenant/imagen.txt
+    mode: "0644"
+    content: |
+      app_version={{ app_version }}
+      app_ref={{ app_ref }}
+      app_commit={{ app_codigo.after }}
+  when: app_codigo.after is defined

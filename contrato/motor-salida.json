@@ -1,0 +1,11 @@
+{
+  "tenant_id": "utepsa",
+  "instance_id": "i-0abc1234def567890",
+  "public_ip": "54.234.120.47",
+  "url": "http://54.234.120.47",
+  "versiones": {
+    "app": "1.0.0",
+    "plantilla": "0.1.0",
+    "motor": "opentofu"
+  }
+}

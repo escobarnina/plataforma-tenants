@@ -1,0 +1,2 @@
+# Los scripts corren en Linux: siempre fin de linea LF, tambien en Windows.
+* text eol=lf

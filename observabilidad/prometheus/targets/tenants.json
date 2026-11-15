@@ -1,0 +1,58 @@
+[
+  {
+    "targets": ["host.docker.internal:9100"],
+    "labels": {
+      "job": "node",
+      "tenant_id": "san-marcos",
+      "entorno": "produccion",
+      "plan": "estandar",
+      "instance_type": "t3.small"
+    }
+  },
+  {
+    "targets": ["host.docker.internal:3002"],
+    "labels": {
+      "job": "app",
+      "tenant_id": "san-marcos",
+      "entorno": "produccion",
+      "plan": "estandar"
+    }
+  },
+  {
+    "targets": ["host.docker.internal:9104"],
+    "labels": {
+      "job": "mysql",
+      "tenant_id": "san-marcos",
+      "entorno": "produccion",
+      "plan": "estandar"
+    }
+  },
+  {
+    "targets": ["host.docker.internal:9101"],
+    "labels": {
+      "job": "node",
+      "tenant_id": "norte",
+      "entorno": "desarrollo",
+      "plan": "basico",
+      "instance_type": "t3.micro"
+    }
+  },
+  {
+    "targets": ["host.docker.internal:3001"],
+    "labels": {
+      "job": "app",
+      "tenant_id": "norte",
+      "entorno": "desarrollo",
+      "plan": "basico"
+    }
+  },
+  {
+    "targets": ["host.docker.internal:9105"],
+    "labels": {
+      "job": "mysql",
+      "tenant_id": "norte",
+      "entorno": "desarrollo",
+      "plan": "basico"
+    }
+  }
+]
