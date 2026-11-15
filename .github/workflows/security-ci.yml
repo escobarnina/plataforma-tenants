@@ -8,6 +8,10 @@ on:
     branches: [develop, main]
   pull_request:
     branches: [develop, main]
+    
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 # El CI solo necesita leer el codigo.
 permissions:
