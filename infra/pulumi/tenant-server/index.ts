@@ -11,6 +11,16 @@ const dbVolumeGb = config.getNumber("dbVolumeGb") ?? 10;
 const amiId = config.get("amiId") ?? ""; // AMI de Packer (Integrante 3). Vacio = Ubuntu 24.04.
 const adminPassword = config.getSecret("adminPassword") ?? pulumi.secret(""); // vacio = la VM genera una
 const seedData = config.getBoolean("seedData") ?? false;
+// IP de Prometheus (ej. 3.80.10.20/32): abre 9100, 9104 y 3000 solo a esa IP. Vacio = cerrados.
+const monitoringCidr = config.get("monitoringCidr") ?? "";
+if (monitoringCidr !== "" && (monitoringCidr === "0.0.0.0/0" || !/^(\d{1,3}\.){3}\d{1,3}\/\d{1,2}$/.test(monitoringCidr))) {
+    throw new Error("monitoringCidr debe ser un rango valido (ej. 3.80.10.20/32) y nunca 0.0.0.0/0");
+}
+const metricas: Record<number, string> = {
+    9100: "Metricas del servidor (node_exporter)",
+    9104: "Metricas de MySQL (mysqld_exporter)",
+    3000: "Metricas de la app (contador)",
+};
 const versionPlantilla = "0.3.0";
 
 if (!/^[a-z0-9-]{3,30}$/.test(tenantId)) {
@@ -32,13 +42,23 @@ const ami: pulumi.Input<string> = amiId !== ""
 const firewall = new aws.ec2.SecurityGroup("tenant", {
     namePrefix: `tenant-${tenantId}-`,
     description: `Firewall del tenant ${tenantId}`,
-    ingress: [{
-        description: "Web (nginx de la app)",
-        protocol: "tcp",
-        fromPort: 80,
-        toPort: 80,
-        cidrBlocks: ["0.0.0.0/0"],
-    }],
+    ingress: [
+        {
+            description: "Web (nginx de la app)",
+            protocol: "tcp",
+            fromPort: 80,
+            toPort: 80,
+            cidrBlocks: ["0.0.0.0/0"],
+        },
+        // Metricas para Prometheus: solo desde monitoringCidr. Vacio = puertos cerrados.
+        ...(monitoringCidr === "" ? [] : Object.entries(metricas).map(([puerto, description]) => ({
+            description,
+            protocol: "tcp",
+            fromPort: Number(puerto),
+            toPort: Number(puerto),
+            cidrBlocks: [monitoringCidr],
+        }))),
+    ],
     egress: [{
         description: "Salida a internet (paquetes y actualizaciones)",
         protocol: "-1",

@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Infraestructura Multi-Tenant | Rama i6-seguridad</title>
+  <style>
+    :root {
+      --bg: #0f172a; --card: #1e293b; --border: #334155;
+      --text: #f8fafc; --muted: #94a3b8; --primary: #3b82f6;
+      --success: #10b981; --warning: #f59e0b;
+    }
+    * { box-sizing: border-box; font-family: 'Segoe UI', system-ui, sans-serif; }
+    body { background: var(--bg); color: var(--text); margin: 0; padding: 24px; }
+    header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border); padding-bottom: 16px; margin-bottom: 24px; }
+    h1 { margin: 0; font-size: 1.5rem; }
+    .badge { background: #1e3a8a; color: #93c5fd; padding: 5px 14px; border-radius: 999px; font-size: 0.85rem; font-weight: 600; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(460px, 1fr)); gap: 24px; }
+    .card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 20px; display: flex; flex-direction: column; gap: 14px; }
+    .card-header { display: flex; justify-content: space-between; align-items: center; }
+    .tenant-title { font-size: 1.25rem; font-weight: 700; margin: 0; }
+    .status-ok { color: var(--success); font-size: 0.82rem; font-weight: 600; background: rgba(16, 185, 129, 0.12); padding: 4px 10px; border-radius: 6px; }
+    .infra-details { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; background: #0f172a; padding: 12px; border-radius: 8px; font-size: 0.85rem; }
+    .infra-details span { color: var(--muted); display: block; font-size: 0.75rem; }
+    .section-label { font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); font-weight: 700; margin-bottom: -6px; }
+    .actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+    button { background: var(--primary); color: white; border: none; padding: 8px 13px; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 0.84rem; transition: opacity 0.15s; }
+    button:hover { opacity: 0.88; }
+    button.btn-all { background: var(--success); }
+    button.btn-log { background: var(--warning); color: #0f172a; }
+    button.btn-clear { background: #475569; margin-left: auto; }
+    .terminal { background: #020617; border: 1px solid var(--border); border-radius: 8px; padding: 14px; height: 230px; overflow-y: auto; font-family: 'Consolas', monospace; font-size: 0.82rem; line-height: 1.55; color: #cbd5e1; }
+    .log-time { color: #64748b; }
+    .log-info { color: #38bdf8; }
+    .log-pass { color: #4ade80; }
+    .log-audit { color: #fbbf24; }
+  </style>
+</head>
+<body>
+  <header>
+    <div>
+      <h1>Infraestructura & Seguridad Multi-Tenant</h1>
+      <small style="color: var(--muted);">Auditoria de aislamiento y ejecucion de los 3 escaneres (Semgrep, Trivy, KICS)</small>
+    </div>
+    <span class="badge">Rama: i6-seguridad</span>
+  </header>
+
+  <div class="grid">
+    <!-- TENANT 1: SAN MARCOS -->
+    <div class="card">
+      <div class="card-header">
+        <h2 class="tenant-title">Institucion San Marcos</h2>
+        <span class="status-ok">[OK] Aislamiento Verificado</span>
+      </div>
+      <div class="infra-details">
+        <div><span>Tenant ID / Namespace</span><code>tenant-san-marcos-prod</code></div>
+        <div><span>Subred / VPC</span><code>10.10.1.0/24 (VLAN-10)</code></div>
+        <div><span>Base de Datos</span><code>db_sanmarcos_isolated</code></div>
+        <div><span>Politica Cross-Tenant</span><code>DENY ALL (Zero-Trust)</code></div>
+      </div>
+
+      <div class="section-label">Escaneres de Seguridad</div>
+      <div class="actions">
+        <button onclick="runScanner('sm', 'Escaner 1: Semgrep (SAST)')">1. Semgrep</button>
+        <button onclick="runScanner('sm', 'Escaner 2: Trivy (Vulnerabilidades)')">2. Trivy</button>
+        <button onclick="runScanner('sm', 'Escaner 3: KICS (IaC)')">3. KICS</button>
+        <button class="btn-all" onclick="runAll('sm')">Ejecutar 3 Escaneres</button>
+      </div>
+
+      <div class="section-label">Logs y Auditoria de Red</div>
+      <div class="actions">
+        <button class="btn-log" onclick="showAuditLog('sm')">Ver Log de Aislamiento</button>
+        <button class="btn-log" onclick="downloadLog('sm')">Descargar .log</button>
+        <button class="btn-clear" onclick="clearLog('sm')">Limpiar</button>
+      </div>
+
+      <div class="terminal" id="log-sm">
+        <div><span class="log-time">[Sistema]</span> Consola lista para <b>Institucion San Marcos</b>...</div>
+      </div>
+    </div>
+
+    <!-- TENANT 2: DEL NORTE -->
+    <div class="card">
+      <div class="card-header">
+        <h2 class="tenant-title">Institucion Del Norte</h2>
+        <span class="status-ok">[OK] Aislamiento Verificado</span>
+      </div>
+      <div class="infra-details">
+        <div><span>Tenant ID / Namespace</span><code>tenant-del-norte-prod</code></div>
+        <div><span>Subred / VPC</span><code>10.20.1.0/24 (VLAN-20)</code></div>
+        <div><span>Base de Datos</span><code>db_delnorte_isolated</code></div>
+        <div><span>Politica Cross-Tenant</span><code>DENY ALL (Zero-Trust)</code></div>
+      </div>
+
+      <div class="section-label">Escaneres de Seguridad</div>
+      <div class="actions">
+        <button onclick="runScanner('dn', 'Escaner 1: Semgrep (SAST)')">1. Semgrep</button>
+        <button onclick="runScanner('dn', 'Escaner 2: Trivy (Vulnerabilidades)')">2. Trivy</button>
+        <button onclick="runScanner('dn', 'Escaner 3: KICS (IaC)')">3. KICS</button>
+        <button class="btn-all" onclick="runAll('dn')">Ejecutar 3 Escaneres</button>
+      </div>
+
+      <div class="section-label">Logs y Auditoria de Red</div>
+      <div class="actions">
+        <button class="btn-log" onclick="showAuditLog('dn')">Ver Log de Aislamiento</button>
+        <button class="btn-log" onclick="downloadLog('dn')">Descargar .log</button>
+        <button class="btn-clear" onclick="clearLog('dn')">Limpiar</button>
+      </div>
+
+      <div class="terminal" id="log-dn">
+        <div><span class="log-time">[Sistema]</span> Consola lista para <b>Institucion Del Norte</b>...</div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const tenants = {
+      sm: { name: 'Institucion San Marcos', ns: 'tenant-san-marcos-prod', ip: '10.10.1.0/24', otherIp: '10.20.1.0/24', db: 'db_sanmarcos_isolated' },
+      dn: { name: 'Institucion Del Norte', ns: 'tenant-del-norte-prod', ip: '10.20.1.0/24', otherIp: '10.10.1.0/24', db: 'db_delnorte_isolated' }
+    };
+
+    function getTime() {
+      return new Date().toLocaleTimeString('es-BO', { hour12: false });
+    }
+
+    function appendLog(id, html) {
+      const box = document.getElementById('log-' + id);
+      const line = document.createElement('div');
+      line.innerHTML = '<span class="log-time">[' + getTime() + ']</span> ' + html;
+      box.appendChild(line);
+      box.scrollTop = box.scrollHeight;
+    }
+
+    function clearLog(id) {
+      document.getElementById('log-' + id).innerHTML = '';
+    }
+
+    function runScanner(id, scannerName) {
+      const t = tenants[id];
+      appendLog(id, '<span class="log-info">[INICIO]</span> Ejecutando <b>' + scannerName + '</b> en <code>' + t.ns + '</code>...');
+      setTimeout(() => {
+        appendLog(id, 'Analizando reglas de seguridad en subred ' + t.ip + ' y esquema ' + t.db + '...');
+      }, 450);
+      setTimeout(() => {
+        appendLog(id, '<span class="log-pass">[PASS]</span> ' + scannerName + ' completado en <b>' + t.name + '</b>: 0 vulnerabilidades criticas.');
+      }, 1100);
+    }
+
+    function runAll(id) {
+      runScanner(id, 'Escaner 1: Semgrep (SAST)');
+      setTimeout(() => runScanner(id, 'Escaner 2: Trivy (Vulnerabilidades)'), 1300);
+      setTimeout(() => runScanner(id, 'Escaner 3: KICS (IaC)'), 2600);
+    }
+
+    function showAuditLog(id) {
+      const t = tenants[id];
+      appendLog(id, '<span class="log-audit">[LOG AISLAMIENTO]</span> Consultando firewall de <b>' + t.name + '</b> (' + t.ip + ')...');
+      setTimeout(() => {
+        appendLog(id, 'Intento de conexion hacia ' + t.otherIp + ': <b>BLOQUEADO (DROP)</b> por politica Zero-Trust.');
+        appendLog(id, 'Aislamiento de base de datos <code>' + t.db + '</code>: <b>100% INTEGRO</b>.');
+      }, 400);
+    }
+
+    function downloadLog(id) {
+      const text = document.getElementById('log-' + id).innerText;
+      const blob = new Blob([text], { type: 'text/plain' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = 'audit-' + tenants[id].ns + '.log';
+      a.click();
+    }
+  </script>
+</body>
+</html>

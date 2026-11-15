@@ -13,9 +13,6 @@ function datosAdmin() {
   return { adminPassword: clave, seedData: process.env.SEED_DATA === 'true' };
 }
 
-<<<<<<< Updated upstream
-module.exports = { datosAdmin };
-=======
 const { execSync } = require('child_process');
 
 // IP de Prometheus para abrir los puertos de metricas (9100, 9104, 3000) solo a ella.
@@ -38,4 +35,3 @@ function cidrMonitoreo() {
 }
 
 module.exports = { datosAdmin, cidrMonitoreo };
->>>>>>> Stashed changes

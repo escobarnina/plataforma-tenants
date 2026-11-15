@@ -3,7 +3,7 @@
 
 const { spawn } = require('child_process');
 const fs = require('fs');
-const { datosAdmin } = require('./tenant-admin');
+const { datosAdmin, cidrMonitoreo } = require('./tenant-admin');
 const path = require('path');
 
 const PLAN_A_INSTANCIA = {
@@ -85,6 +85,9 @@ function variables(tenant) {
   if (/^ami-[0-9a-f]{8,17}$/.test(process.env.AMI_ID || '')) {
     lista.push('-var', `ami_id=${process.env.AMI_ID}`);
   }
+  // IP de Prometheus: abre los puertos de metricas solo a esa IP (MONITORING_CIDR=x.x.x.x/32 en el .env).
+  const cidr = cidrMonitoreo();
+  if (cidr) lista.push('-var', `monitoring_cidr=${cidr}`);
   return lista;
 }
 

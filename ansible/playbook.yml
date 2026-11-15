@@ -1,6 +1,6 @@
 ---
 # Deja lista la imagen del tenant. Lo ejecuta Packer dentro de la VM temporal.
-# Orden: base -> nodejs -> mysql -> app -> firstboot
+# Orden: base -> nodejs -> mysql -> app -> monitoreo -> firstboot
 - name: Imagen del tenant (Mi-asistencia)
   hosts: all
   become: true
@@ -13,4 +13,5 @@
     - nodejs
     - mysql
     - app
+    - monitoreo
     - firstboot

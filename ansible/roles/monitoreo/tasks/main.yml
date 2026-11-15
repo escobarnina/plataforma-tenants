@@ -1,0 +1,50 @@
+---
+# Sensores que lee Prometheus (RF-26). El firewall solo abre estos puertos a la IP de Prometheus.
+#   9100 node_exporter      CPU, memoria, disco y red
+#   9104 mysqld_exporter    estado de MySQL (se configura en el primer arranque, con su propio usuario)
+#   3000 metricas-app       peticiones, latencia y errores 5xx de la app
+
+- name: Sensores oficiales de Prometheus
+  ansible.builtin.apt:
+    name:
+      - prometheus-node-exporter
+      - prometheus-mysqld-exporter
+    state: present
+
+- name: Sensor del servidor arranca con la VM
+  ansible.builtin.service:
+    name: prometheus-node-exporter
+    state: started
+    enabled: true
+
+# Sin usuario de MySQL todavia: lo crea tenant-configure en cada VM y ahi se enciende.
+- name: Sensor de MySQL apagado hasta el primer arranque
+  ansible.builtin.service:
+    name: prometheus-mysqld-exporter
+    state: stopped
+    enabled: false
+
+- name: Carpeta de las herramientas del tenant
+  ansible.builtin.file:
+    path: /opt/tenant
+    state: directory
+    mode: "0755"
+
+- name: Contador de metricas de la app
+  ansible.builtin.copy:
+    src: metricas-app.js
+    dest: /opt/tenant/metricas-app.js
+    mode: "0644"
+
+- name: Servicio del contador
+  ansible.builtin.copy:
+    src: metricas-app.service
+    dest: /etc/systemd/system/metricas-app.service
+    mode: "0644"
+
+- name: Contador arranca con la VM
+  ansible.builtin.systemd:
+    name: metricas-app
+    state: started
+    enabled: true
+    daemon_reload: true

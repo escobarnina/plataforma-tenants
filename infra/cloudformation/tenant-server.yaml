@@ -34,6 +34,11 @@ Parameters:
     AllowedValues: ["true", "false"]
     Default: "false"
     Description: true = la app arranca con datos de ejemplo (para pruebas).
+  MonitoringCidr:
+    Type: String
+    Default: ""
+    Description: IP de Prometheus (ej. 3.80.10.20/32). Abre 9100, 9104 y 3000 solo a esa IP. Vacio = cerrados.
+    AllowedPattern: "^$|^(?!0\\.0\\.0\\.0/0$)([0-9]{1,3}\\.){3}[0-9]{1,3}/[0-9]{1,2}$"
   UbuntuAmi:
     Type: AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>
     Default: /aws/service/canonical/ubuntu/server/24.04/stable/current/amd64/hvm/ebs-gp3/ami-id
@@ -43,6 +48,7 @@ Parameters:
 
 Conditions:
   UsaAmiPropia: !Not [!Equals [!Ref AmiId, ""]]
+  ConMetricas: !Not [!Equals [!Ref MonitoringCidr, ""]]
 
 Resources:
   SecurityGroup:
@@ -55,6 +61,31 @@ Resources:
           FromPort: 80
           ToPort: 80
           CidrIp: 0.0.0.0/0
+        # Metricas para Prometheus: solo desde MonitoringCidr. Vacio = puertos cerrados.
+        - !If
+          - ConMetricas
+          - Description: Metricas del servidor (node_exporter)
+            IpProtocol: tcp
+            FromPort: 9100
+            ToPort: 9100
+            CidrIp: !Ref MonitoringCidr
+          - !Ref AWS::NoValue
+        - !If
+          - ConMetricas
+          - Description: Metricas de MySQL (mysqld_exporter)
+            IpProtocol: tcp
+            FromPort: 9104
+            ToPort: 9104
+            CidrIp: !Ref MonitoringCidr
+          - !Ref AWS::NoValue
+        - !If
+          - ConMetricas
+          - Description: Metricas de la app (contador)
+            IpProtocol: tcp
+            FromPort: 3000
+            ToPort: 3000
+            CidrIp: !Ref MonitoringCidr
+          - !Ref AWS::NoValue
       Tags:
         - Key: tenant_id
           Value: !Ref TenantId
