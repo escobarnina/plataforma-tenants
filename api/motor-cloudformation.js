@@ -28,7 +28,9 @@ function ocultarSecretos(texto) {
 // Ejecuta aws, manda cada linea al log y falla si el codigo de salida no es 0.
 function aws(args, onLog, soloStdout = false) {
   return new Promise((resolve, reject) => {
-    const proceso = spawn('aws', args, { shell: false });
+    // Si no tiene --no-verify-ssl, lo agregamos para entornos Windows con inspeccion SSL
+    const argsFinales = args.includes('--no-verify-ssl') ? args : [...args, '--no-verify-ssl'];
+    const proceso = spawn('aws', argsFinales, { shell: false });
     let salida = '';
     const recibir = (esStdout) => (datos) => {
       const texto = ocultarSecretos(datos.toString());
